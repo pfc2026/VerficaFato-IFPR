@@ -1,0 +1,352 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="VerificaOeste ajuda a analisar notícias e links com foco no Oeste do Paraná.">
+    <title>VerificaOeste - Detector de notícias falsas do Oeste do Paraná</title>
+
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="css/responsive.css">
+</head>
+
+<body>
+    <div id="alertContainer" class="position-fixed top-0 start-50 translate-middle-x p-3" aria-live="polite"></div>
+
+    <header class="site-header">
+        <div class="container header-shell">
+            <a class="brand-link" href="#inicio" aria-label="VerificaOeste - início">
+                <span class="brand-icon"><i class="fas fa-location-dot" aria-hidden="true"></i></span>
+                <span>VerificaOeste</span>
+            </a>
+
+            <nav class="site-nav" aria-label="Navegação principal">
+
+            </nav>
+        </div>
+    </header>
+
+    <main id="inicio">
+        <section class="hero-section" aria-labelledby="heroTitle">
+            <div class="container hero-shell">
+                <div class="hero-content">
+                    <p class="eyebrow">Checagem regional de informação</p>
+                    <h1 id="heroTitle">.</h1>
+                    <p class="tagline">
+                        
+                    </p>
+
+                    <div class="hero-metrics" aria-label="Resumo de cobertura">
+                        <div>
+                            <strong>54</strong>
+                            <span>municípios</span>
+                        </div>
+                        <div>
+                            <strong>IA</strong>
+                            <span>análise preliminar</span>
+                        </div>
+                        <div>
+                            <strong>Fontes</strong>
+                            <span>regionais</span>
+                        </div>
+                    </div>
+                </div>
+
+                <section class="verification-panel" aria-labelledby="searchTitle">
+                    <div class="panel-heading">
+                        <div>
+                            <span class="section-kicker">Pesquisa</span>
+                            <h2 id="searchTitle">Pesquisar notícia</h2>
+                        </div>
+                        <span class="panel-status">
+                            <i class="fas fa-shield-halved" aria-hidden="true"></i>
+                            Verificação assistida
+                        </span>
+                    </div>
+
+                    <form id="verificationForm">
+                        <div class="form-grid">
+                            <div class="field-block field-block-large">
+                                <label for="newsText">Texto da notícia</label>
+                                <textarea class="form-control search-box" id="newsText" rows="7"
+                                    placeholder="Cole aqui o texto ou a alegação que você quer verificar."></textarea>
+                            </div>
+
+                            <div class="form-side">
+                                <div class="field-block">
+                                    <label for="newsLink">Link da notícia</label>
+                                    <input class="form-control search-box link-input" id="newsLink" type="url"
+                                        inputmode="url" autocomplete="off"
+                                        placeholder="https://exemplo.com/noticia">
+                                </div>
+
+                                <div class="select-grid">
+                                    <div class="field-block">
+                                        <label for="citySelect">Cidade</label>
+                                        <select class="form-select" id="citySelect">
+                                            <option value="">Opcional</option>
+                                        </select>
+                                    </div>
+
+                                    <div class="field-block">
+                                        <label for="categorySelect">Categoria</label>
+                                        <select class="form-select" id="categorySelect">
+                                            <option value="">Opcional</option>
+                                        </select>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <button type="submit" class="btn btn-verify w-100">
+                            <span class="btn-text">
+                                <i class="fas fa-magnifying-glass" aria-hidden="true"></i>
+                                Pesquisar notícia
+                            </span>
+                            <span class="loading-spinner spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
+                            <span class="visually-hidden">Carregando...</span>
+                        </button>
+                    </form>
+
+                    <p class="privacy-note">
+                        <i class="fas fa-lock" aria-hidden="true"></i>
+                        Use texto ou link, não os dois ao mesmo tempo.
+                    </p>
+                </section>
+            </div>
+        </section>
+
+        <section class="features-section" aria-labelledby="focusTitle">
+            <div class="container">
+                <div class="section-heading">
+                    <span class="section-kicker">Cobertura local</span>
+                    <h2 id="focusTitle">Foco no Oeste do Paraná</h2>
+                    <p>Uma experiência feita para analisar conteúdo com referências regionais e leitura crítica.</p>
+                </div>
+
+                <div class="feature-grid">
+                    <article class="feature-card">
+                        <div class="feature-icon">
+                            <i class="fas fa-map-marked-alt" aria-hidden="true"></i>
+                        </div>
+                        <h3>Regionalizado</h3>
+                        <p>Foco nos municípios do Oeste Paranaense e nas pautas que circulam na região.</p>
+                    </article>
+
+                    <article class="feature-card">
+                        <div class="feature-icon">
+                            <i class="fas fa-newspaper" aria-hidden="true"></i>
+                        </div>
+                        <h3>Fontes locais</h3>
+                        <p>Busca por verificações e referências em veículos, órgãos públicos e bases confiáveis.</p>
+                    </article>
+
+                    <article class="feature-card">
+                        <div class="feature-icon">
+                            <i class="fas fa-scale-balanced" aria-hidden="true"></i>
+                        </div>
+                        <h3>Contexto</h3>
+                        <p>Ajuda a observar linguagem, fonte, evidências e sinais comuns de manipulação.</p>
+                    </article>
+                </div>
+
+                <div class="region-panel" aria-labelledby="citiesTitle">
+                    <div>
+                        <span class="section-kicker">Municípios atendidos</span>
+                        <h3 id="citiesTitle">Principais polos regionais</h3>
+                    </div>
+                    <div class="map-container">
+                        <span class="map-item" data-city="Cascavel">Cascavel</span>
+                        <span class="map-item" data-city="Foz do Iguaçu">Foz do Iguaçu</span>
+                        <span class="map-item" data-city="Toledo">Toledo</span>
+                        <span class="map-item" data-city="Marechal Cândido Rondon">M. Rondon</span>
+                        <span class="map-item" data-city="Medianeira">Medianeira</span>
+                        <span class="map-item" data-city="+49 cidades">+49 cidades</span>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section id="fontes" class="sources-section" aria-labelledby="sourcesTitle">
+            <div class="container">
+                <div class="section-heading">
+                    <span class="section-kicker">Referências</span>
+                    <h2 id="sourcesTitle">Fontes confiáveis da região</h2>
+                    <p>Veículos e referências para começar uma checagem responsável.</p>
+                </div>
+
+                <div class="sources-grid">
+                    <a href="https://radiocolmeia.com.br/" class="source-card" target="_blank" rel="noopener noreferrer">
+                        <i class="fas fa-radio" aria-hidden="true"></i>
+                        <span>Rádio Colmeia</span>
+                    </a>
+                    <a href="https://cascavelnews.com.br/" class="source-card" target="_blank" rel="noopener noreferrer">
+                        <i class="fas fa-building-columns" aria-hidden="true"></i>
+                        <span>Cascavel News</span>
+                    </a>
+                    <a href="https://oparana.com.br/" class="source-card" target="_blank" rel="noopener noreferrer">
+                        <i class="fas fa-newspaper" aria-hidden="true"></i>
+                        <span>Jornal O Paraná</span>
+                    </a>
+                    <a href="https://clube.fm/oeste-do-parana" class="source-card" target="_blank" rel="noopener noreferrer">
+                        <i class="fas fa-microphone-lines" aria-hidden="true"></i>
+                        <span>Rádio Clube</span>
+                    </a>
+                </div>
+            </div>
+        </section>
+
+        <section id="education" class="education-section" aria-labelledby="educationTitle">
+            <div class="container">
+                <div class="section-heading">
+                    <span class="section-kicker">Educação midiática</span>
+                    <h2 id="educationTitle">Como identificar fake news</h2>
+                    <p>Lições rápidas para reconhecer padrões de desinformação antes de compartilhar.</p>
+                </div>
+
+                <div class="education-tabs" role="tablist" aria-label="Filtros de lições">
+                    <button type="button" class="tab-btn active" data-filter="todos">Todos</button>
+                    <button type="button" class="tab-btn" data-filter="formato">Formato</button>
+                    <button type="button" class="tab-btn" data-filter="linguagem">Linguagem</button>
+                    <button type="button" class="tab-btn" data-filter="verificacao">Verificação</button>
+                    <button type="button" class="tab-btn" data-filter="analise">Análise</button>
+                    <button type="button" class="tab-btn" data-filter="psicologia">Psicologia</button>
+                    <button type="button" class="tab-btn" data-filter="midia">Mídia</button>
+                </div>
+
+                <div id="educationContent" class="education-grid">
+                    <article class="education-card" data-category="formato">
+                        <div class="card-header">
+                            <i class="fas fa-exclamation-circle card-icon" aria-hidden="true"></i>
+                            <h3 class="card-title">Atenção com excesso de maiúsculas</h3>
+                        </div>
+                        <div class="badge-group">
+                            <span class="badge badge-primary">Formato</span>
+                            <span class="badge badge-basic">Básico</span>
+                        </div>
+                        <p class="card-description">Textos com muitas letras maiúsculas podem indicar conteúdo sensacionalista.</p>
+                        <button type="button" class="btn-read-more" onclick="openLesson('maiusculas')">Ler mais</button>
+                    </article>
+
+                    <article class="education-card" data-category="linguagem">
+                        <div class="card-header">
+                            <i class="fas fa-bell card-icon" aria-hidden="true"></i>
+                            <h3 class="card-title">Palavras alarmistas e sensacionalistas</h3>
+                        </div>
+                        <div class="badge-group">
+                            <span class="badge badge-primary">Linguagem</span>
+                            <span class="badge badge-basic">Básico</span>
+                        </div>
+                        <p class="card-description">Termos como "urgente" e "bomba" tentam provocar reação imediata.</p>
+                        <button type="button" class="btn-read-more" onclick="openLesson('alarmista')">Ler mais</button>
+                    </article>
+
+                    <article class="education-card" data-category="verificacao">
+                        <div class="card-header">
+                            <i class="fas fa-link card-icon" aria-hidden="true"></i>
+                            <h3 class="card-title">Verificando as fontes</h3>
+                        </div>
+                        <div class="badge-group">
+                            <span class="badge badge-primary">Verificação</span>
+                            <span class="badge badge-intermediate">Intermediário</span>
+                        </div>
+                        <p class="card-description">A origem da informação é uma das primeiras pistas de confiabilidade.</p>
+                        <button type="button" class="btn-read-more" onclick="openLesson('fontes')">Ler mais</button>
+                    </article>
+
+                    <article class="education-card" data-category="analise">
+                        <div class="card-header">
+                            <i class="fas fa-building card-icon" aria-hidden="true"></i>
+                            <h3 class="card-title">A importância do contexto</h3>
+                        </div>
+                        <div class="badge-group">
+                            <span class="badge badge-primary">Análise</span>
+                            <span class="badge badge-intermediate">Intermediário</span>
+                        </div>
+                        <p class="card-description">Uma informação verdadeira pode ser distorcida quando aparece fora de contexto.</p>
+                        <button type="button" class="btn-read-more" onclick="openLesson('contexto')">Ler mais</button>
+                    </article>
+
+                    <article class="education-card" data-category="psicologia">
+                        <div class="card-header">
+                            <i class="fas fa-heart-pulse card-icon" aria-hidden="true"></i>
+                            <h3 class="card-title">Manipulação emocional</h3>
+                        </div>
+                        <div class="badge-group">
+                            <span class="badge badge-primary">Psicologia</span>
+                            <span class="badge badge-advanced">Avançado</span>
+                        </div>
+                        <p class="card-description">Conteúdos falsos costumam explorar medo, raiva ou esperança para viralizar.</p>
+                        <button type="button" class="btn-read-more" onclick="openLesson('emocional')">Ler mais</button>
+                    </article>
+
+                    <article class="education-card" data-category="midia">
+                        <div class="card-header">
+                            <i class="fas fa-image card-icon" aria-hidden="true"></i>
+                            <h3 class="card-title">Imagens manipuladas e deepfakes</h3>
+                        </div>
+                        <div class="badge-group">
+                            <span class="badge badge-primary">Mídia</span>
+                            <span class="badge badge-advanced">Avançado</span>
+                        </div>
+                        <p class="card-description">Fotos, vídeos e prints também podem ser editados ou tirados de contexto.</p>
+                        <button type="button" class="btn-read-more" onclick="openLesson('midia')">Ler mais</button>
+                    </article>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <div id="lessonModal" class="lesson-modal" style="display: none;" role="dialog" aria-modal="true" aria-labelledby="lessonTitle">
+        <div class="modal-overlay" onclick="closeLesson()"></div>
+        <div class="modal-content lesson-content">
+            <div class="modal-header">
+                <h2 id="lessonTitle">Título da lição</h2>
+                <button type="button" class="modal-close" onclick="closeLesson()" aria-label="Fechar lição">
+                    <i class="fas fa-xmark" aria-hidden="true"></i>
+                </button>
+            </div>
+            <div class="modal-body" id="lessonBody"></div>
+        </div>
+    </div>
+
+    <footer id="contato" class="footer">
+        <div class="container footer-grid">
+            <div>
+                <h2><i class="fas fa-location-dot" aria-hidden="true"></i> VerificaOeste</h2>
+                <p class="footer-text">Combatendo fake news no Oeste do Paraná com tecnologia, educação midiática e contexto regional.</p>
+            </div>
+
+            <div>
+                <h3>Links rápidos</h3>
+                <ul class="list-unstyled">
+                    <li><a href="#inicio" class="footer-link">Verificar notícia</a></li>
+                    <li><a href="#fontes" class="footer-link">Fontes confiáveis</a></li>
+                    <li><a href="#education" class="footer-link">Dicas educativas</a></li>
+                </ul>
+            </div>
+
+            <div>
+                <h3>Contato</h3>
+                <ul class="list-unstyled footer-contact">
+                    <li><i class="fas fa-envelope" aria-hidden="true"></i> contato@verificaoeste.com</li>
+                    <li><i class="fas fa-map-pin" aria-hidden="true"></i> Oeste do Paraná</li>
+                </ul>
+            </div>
+        </div>
+
+        <div class="container footer-bottom">
+            <small>&copy; 2026 VerificaOeste - Foco no Oeste Paranaense</small>
+        </div>
+    </footer>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="js/dark-mode.js"></script>
+    <script src="js/education.js"></script>
+    <script src="js/main.js"></script>
+</body>
+
+</html>
