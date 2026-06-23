@@ -3,16 +3,16 @@ const express   = require('express');
 const path      = require('path');
 const mongoose  = require('mongoose');
 const { verificarNoticia }  = require('./googleService');
-let autenticarOpcional;
+
+let autenticarOpcional = async (req, res, next) => {
+    // fallback pass-through (não quebra deploy/boot)
+    req.user = null;
+    next();
+};
+
 try {
     ({ autenticarOpcional } = require('./middleware/auth'));
 } catch (e) {
-    // Deploys em ambientes serverless podem falhar ao empacotar arquivos.
-    // Mantém o app funcionando com autenticação opcional “pass-through”.
-    autenticarOpcional = async (req, res, next) => {
-        req.user = null;
-        next();
-    };
     console.warn('⚠️ Falha ao carregar ./middleware/auth. Usando fallback no middleware opcional. Detalhe:', e.message);
 }
 
@@ -335,120 +335,120 @@ async function seedLicoesIniciais() {
                         <li><strong>3. Pesquise a fonte:</strong> Busque "nome do site + críticas" ou "nome do site + confiável"</li>
                         <li><strong>4. Procure em outro lugar:</strong> A mesma notícia aparece em outros jornais?</li>
                         <li><strong>5. Veja se tem byline:</strong> Tem nome de jornalista e data clara?</li>
-                       </ul>
-                       <h3>Fontes confiáveis (Oeste do Paraná):</h3>
-                       <ul>
-                           <li>G1 Paraná</li>
-                           <li>Jornal O Paraná</li>
-                           <li>Gazeta do Povo</li>
-                           <li>Rádio Colmeia</li>
-                           <li>Tribunal de Justiça do Paraná</li>
-                           <li>Câmaras Oficiais dos Municípios</li>
-                       </ul>
-                       <h3>Sinais de alerta em websites:</h3>
-                       <ul>
-                           <li>Muitos anúncios e pop-ups</li>
-                           <li>Conteúdo publicado sem assinatura clara</li>
-                           <li>Design amador ou descuidado</li>
-                           <li>Nenhuma página "Sobre Nós" ou de contato</li>
-                       </ul>
-                   `
-               },
-               {
-                   lessonId: 'contexto',
-                   titulo: 'A importância do contexto',
-                   descricao: 'Uma informação verdadeira pode ser distorcida quando aparece fora de contexto.',
-                   categoria: 'analise',
-                   nivel: 'intermediario',
-                   icone: 'fa-building',
-                   ordem: 4,
-                   conteudoHTML: `
-                       <h3>Contexto removido = Desinformação</h3>
-                       <p>Muitas fake news removem informação de contexto para distorcer significado. Uma frase verdadeira pode virar mentira quando tirada do seu contexto original.</p>
-                       <h3>Exemplos comuns:</h3>
-                       <p><strong>Com contexto removido:</strong><br>
-                       "Prefeito desvia milhões em recursos"</p>
-                       <p><strong>Com contexto completo:</strong><br>
-                       "Prefeito nega denúncia de possível desvio; investigação ainda está em fase inicial"</p>
-                       <h3>Técnicas usadas:</h3>
-                       <ul>
-                           <li><strong>Cherry-picking:</strong> Selecionar apenas dados que apoiam uma conclusão</li>
-                           <li><strong>Truncamento:</strong> Cortar trechos importantes de um discurso</li>
-                           <li><strong>Recontextualização:</strong> Usar citação verdadeira em contexto falso</li>
-                           <li><strong>Omissão:</strong> Deixar de contar parte importante da história</li>
-                       </ul>
-                       <h3>Como se proteger:</h3>
-                       <ul>
-                           <li>Sempre leia a notícia completa</li>
-                           <li>Procure reportagens investigativas aprofundadas</li>
-                           <li>Verifique se a notícia tem comentários ou resposta da pessoa mencionada</li>
-                           <li>Busque perspectivas de múltiplas fontes</li>
-                           <li>Pergunte-se: "Que informação está sendo omitida?"</li>
-                       </ul>
-                   `
-               },
-               {
-                   lessonId: 'emocional',
-                   titulo: 'Manipulação emocional',
-                   descricao: 'Conteúdos falsos costumam explorar medo, raiva ou esperança para viralizar.',
-                   categoria: 'psicologia',
-                   nivel: 'avancado',
-                   icone: 'fa-heart-pulse',
-                   ordem: 5,
-                   conteudoHTML: `
-                       <h3>Emoções como arma</h3>
-                       <p>Fake news frequentemente exploram emoções (raiva, medo, esperança) para fazer com que você compartilhe sem pensar. Isso é chamado de "emotional hijacking".</p>
-                       <h3>Emoções mais exploradas:</h3>
-                       <ul>
-                           <li><strong>Raiva:</strong> Notícias sobre injustiça ou abuso</li>
-                           <li><strong>Medo:</strong> Alertas sobre saúde, segurança ou economia</li>
-                           <li><strong>Esperança:</strong> Promessas de solução milagrosa</li>
-                           <li><strong>Surpresa:</strong> Revelações surpreendentes</li>
-                           <li><strong>Diversão:</strong> Memes e conteúdo "viral"</li>
-                       </ul>
-                       <h3>Como proteger-se:</h3>
-                       <ul>
-                           <li>Pause antes de compartilhar - sinta a emoção</li>
-                           <li>Faça a "regra de 24h": espere um dia antes de compartilhar</li>
-                           <li>Se a notícia deixa você muito furioso, é motivo para desconfiar</li>
-                           <li>Verifique os fatos antes de agir emocionalmente</li>
-                       </ul>
-                   `
-               },
-               {
-                   lessonId: 'midia',
-                   titulo: 'Imagens manipuladas e deepfakes',
-                   descricao: 'Fotos, vídeos e prints também podem ser editados ou tirados de contexto.',
-                   categoria: 'midia',
-                   nivel: 'avancado',
-                   icone: 'fa-image',
-                   ordem: 6,
-                   conteudoHTML: `
-                       <h3>A tecnologia dos Deep Fakes</h3>
-                       <p>Imagens e vídeos são frequentemente manipulados ou tirados de contexto. Com avanços em inteligência artificial, agora é possível criar vídeos convincentes de pessoas dizendo coisas que nunca disseram.</p>
-                       <h3>Tipos de manipulação visual:</h3>
-                       <ul>
-                           <li><strong>Foto de contexto errado:</strong> Imagem real de outro evento/lugar</li>
-                           <li><strong>Imagem editada:</strong> Alteração de cores, faces ou elements</li>
-                           <li><strong>Deep Fake:</strong> Vídeo sintetizado com IA</li>
-                           <li><strong>Screenshots de contexto falso:</strong> Prints manipulados de redes sociais</li>
-                       </ul>
-                       <h3>Como identificar imagens falsas:</h3>
-                       <ul>
-                           <li><strong>Pesquisa reversa:</strong> Clique direito → "Pesquisar imagem no Google"</li>
-                           <li><strong>Observe artefatos:</strong> Bordas pixeladas, iluminação inconsistente</li>
-                           <li><strong>Analise detalhes:</strong> Olhos, boca e cabelo em Deep Fakes</li>
-                           <li><strong>Verifique a fonte:</strong> De onde vem o arquivo original?</li>
-                       </ul>
-                   `
-               }
-           ];
-           await ConteudoEdu.insertMany(licoes);
-           console.log('🌱 Lições educativas iniciais inseridas no banco.');
-       } catch (err) {
-           console.error('❌ Erro no seed de lições:', err.message);
-       }
-   }
+                    </ul>
+                    <h3>Fontes confiáveis (Oeste do Paraná):</h3>
+                    <ul>
+                        <li>G1 Paraná</li>
+                        <li>Jornal O Paraná</li>
+                        <li>Gazeta do Povo</li>
+                        <li>Rádio Colmeia</li>
+                        <li>Tribunal de Justiça do Paraná</li>
+                        <li>Câmaras Oficiais dos Municípios</li>
+                    </ul>
+                    <h3>Sinais de alerta em websites:</h3>
+                    <ul>
+                        <li>Muitos anúncios e pop-ups</li>
+                        <li>Conteúdo publicado sem assinatura clara</li>
+                        <li>Design amador ou descuidado</li>
+                        <li>Nenhuma página "Sobre Nós" ou de contato</li>
+                    </ul>
+                `
+            },
+            {
+                lessonId: 'contexto',
+                titulo: 'A importância do contexto',
+                descricao: 'Uma informação verdadeira pode ser distorcida quando aparece fora de contexto.',
+                categoria: 'analise',
+                nivel: 'intermediario',
+                icone: 'fa-building',
+                ordem: 4,
+                conteudoHTML: `
+                    <h3>Contexto removido = Desinformação</h3>
+                    <p>Muitas fake news removem informação de contexto para distorcer significado. Uma frase verdadeira pode virar mentira quando tirada do seu contexto original.</p>
+                    <h3>Exemplos comuns:</h3>
+                    <p><strong>Com contexto removido:</strong><br>
+                    "Prefeito desvia milhões em recursos"</p>
+                    <p><strong>Com contexto completo:</strong><br>
+                    "Prefeito nega denúncia de possível desvio; investigação ainda está em fase inicial"</p>
+                    <h3>Técnicas usadas:</h3>
+                    <ul>
+                        <li><strong>Cherry-picking:</strong> Selecionar apenas dados que apoiam uma conclusão</li>
+                        <li><strong>Truncamento:</strong> Cortar trechos importantes de um discurso</li>
+                        <li><strong>Recontextualização:</strong> Usar citação verdadeira em contexto falso</li>
+                        <li><strong>Omissão:</strong> Deixar de contar parte importante da história</li>
+                    </ul>
+                    <h3>Como se proteger:</h3>
+                    <ul>
+                        <li>Sempre leia a notícia completa</li>
+                        <li>Procure reportagens investigativas aprofundadas</li>
+                        <li>Verifique se a notícia tem comentários ou resposta da pessoa mencionada</li>
+                        <li>Busque perspectivas de múltiplas fontes</li>
+                        <li>Pergunte-se: "Que informação está sendo omitida?"</li>
+                    </ul>
+                `
+            },
+            {
+                lessonId: 'emocional',
+                titulo: 'Manipulação emocional',
+                descricao: 'Conteúdos falsos costumam explorar medo, raiva ou esperança para viralizar.',
+                categoria: 'psicologia',
+                nivel: 'avancado',
+                icone: 'fa-heart-pulse',
+                ordem: 5,
+                conteudoHTML: `
+                    <h3>Emoções como arma</h3>
+                    <p>Fake news frequentemente exploram emoções (raiva, medo, esperança) para fazer com que você compartilhe sem pensar. Isso é chamado de "emotional hijacking".</p>
+                    <h3>Emoções mais exploradas:</h3>
+                    <ul>
+                        <li><strong>Raiva:</strong> Notícias sobre injustiça ou abuso</li>
+                        <li><strong>Medo:</strong> Alertas sobre saúde, segurança ou economia</li>
+                        <li><strong>Esperança:</strong> Promessas de solução milagrosa</li>
+                        <li><strong>Surpresa:</strong> Revelações surpreendentes</li>
+                        <li><strong>Diversão:</strong> Memes e conteúdo "viral"</li>
+                    </ul>
+                    <h3>Como proteger-se:</h3>
+                    <ul>
+                        <li>Pause antes de compartilhar - sinta a emoção</li>
+                        <li>Faça a "regra de 24h": espere um dia antes de compartilhar</li>
+                        <li>Se a notícia deixa você muito furioso, é motivo para desconfiar</li>
+                        <li>Verifique os fatos antes de agir emocionalmente</li>
+                    </ul>
+                `
+            },
+            {
+                lessonId: 'midia',
+                titulo: 'Imagens manipuladas e deepfakes',
+                descricao: 'Fotos, vídeos e prints também podem ser editados ou tirados de contexto.',
+                categoria: 'midia',
+                nivel: 'avancado',
+                icone: 'fa-image',
+                ordem: 6,
+                conteudoHTML: `
+                    <h3>A tecnologia dos Deep Fakes</h3>
+                    <p>Imagens e vídeos são frequentemente manipulados ou tirados de contexto. Com avanços em inteligência artificial, agora é possível criar vídeos convincentes de pessoas dizendo coisas que nunca disseram.</p>
+                    <h3>Tipos de manipulação visual:</h3>
+                    <ul>
+                        <li><strong>Foto de contexto errado:</strong> Imagem real de outro evento/lugar</li>
+                        <li><strong>Imagem editada:</strong> Alteração de cores, faces ou elementos</li>
+                        <li><strong>Deep Fake:</strong> Vídeo sintetizado com IA</li>
+                        <li><strong>Screenshots de contexto falso:</strong> Prints manipulados de redes sociais</li>
+                    </ul>
+                    <h3>Como identificar imagens falsas:</h3>
+                    <ul>
+                        <li><strong>Pesquisa reversa:</strong> Clique direito → "Pesquisar imagem no Google"</li>
+                        <li><strong>Observe artefatos:</strong> Bordas pixeladas, iluminação inconsistente</li>
+                        <li><strong>Analise detalhes:</strong> Olhos, boca e cabelo em Deep Fakes</li>
+                        <li><strong>Verifique a fonte:</strong> De onde vem o arquivo original?</li>
+                    </ul>
+                `
+            }
+        ];
+        await ConteudoEdu.insertMany(licoes);
+        console.log('🌱 Lições educativas iniciais inseridas no banco.');
+    } catch (err) {
+        console.error('❌ Erro no seed de lições:', err.message);
+    }
+}
 
 // ── Start ──────────────────────────────────────────────────
 const PORT = process.env.PORT || 3000;
@@ -457,3 +457,4 @@ app.listen(PORT, () => {
     console.log(`🔑 Google API Key: ${process.env.GOOGLE_API_KEY ? 'configurada' : 'NÃO configurada'}`);
     console.log(`🔐 JWT Secret: ${process.env.JWT_SECRET ? 'configurada' : 'usando padrão (defina no .env!)'}\n`);
 });
+
