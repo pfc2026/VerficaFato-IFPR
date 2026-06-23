@@ -3,7 +3,19 @@ const express   = require('express');
 const path      = require('path');
 const mongoose  = require('mongoose');
 const { verificarNoticia }  = require('./googleService');
-const { autenticarOpcional } = require('./middleware/auth');
+let autenticarOpcional;
+try {
+    ({ autenticarOpcional } = require('./middleware/auth'));
+} catch (e) {
+    // Deploys em ambientes serverless podem falhar ao empacotar arquivos.
+    // Mantém o app funcionando com autenticação opcional “pass-through”.
+    autenticarOpcional = async (req, res, next) => {
+        req.user = null;
+        next();
+    };
+    console.warn('⚠️ Falha ao carregar ./middleware/auth. Usando fallback no middleware opcional. Detalhe:', e.message);
+}
+
 const Verificacao = require('./models/Verificacao');
 const Fonte       = require('./models/Fonte');
 const ConteudoEdu = require('./models/ConteudoEdu');
