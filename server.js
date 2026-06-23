@@ -16,7 +16,14 @@ try {
     console.warn('⚠️ Falha ao carregar ./middleware/auth. Usando fallback no middleware opcional. Detalhe:', e.message);
 }
 
-const Verificacao = require('./models/Verificacao');
+let Verificacao;
+try {
+    Verificacao = require('./models/Verificacao');
+} catch (e) {
+    console.warn('⚠️ Falha ao carregar ./models/Verificacao. Desabilitando persistência de histórico. Detalhe:', e.message);
+    Verificacao = null;
+}
+
 const Fonte       = require('./models/Fonte');
 const ConteudoEdu = require('./models/ConteudoEdu');
 
