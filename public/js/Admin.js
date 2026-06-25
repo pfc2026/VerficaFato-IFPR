@@ -140,21 +140,21 @@ function mostrarModalPerfil() {
                   </span>
               </div>
               
-              <div class="profile-details-list" style="background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.06); border-radius: 14px; padding: 1.25rem; text-align: left;">
-                  <div class="mb-3 d-flex justify-content-between align-items-center" style="border-bottom: 1px solid rgba(255,255,255,0.05); padding-bottom: 8px;">
-                      <span class="text-muted small"><i class="fas fa-envelope me-2"></i>E-mail</span>
-                      <strong style="color:var(--text-main,#fff); font-size:0.9rem;">${u.email}</strong>
+              <div class="profile-details-list" style="background: rgba(255, 255, 255, 0.03); border: 1px solid rgba(255, 255, 255, 0.06); border-radius: 14px; padding: 1.25rem; text-align: left;">
+                  <div class="mb-3 d-flex justify-content-between align-items-center" style="border-bottom: 1px solid rgba(255, 255, 255, 0.05); padding-bottom: 8px;">
+                      <span class="small" style="color:#fff;"><i class="fas fa-envelope me-2"></i>E-mail</span>
+                      <strong style="color:#fff; font-size:0.9rem;">${u.email}</strong>
                   </div>
-                  <div class="mb-3 d-flex justify-content-between align-items-center" style="border-bottom: 1px solid rgba(255,255,255,0.05); padding-bottom: 8px;">
-                      <span class="text-muted small"><i class="fas fa-map-marker-alt me-2"></i>Cidade</span>
-                      <strong style="color:var(--text-main,#fff); font-size:0.9rem;">${cityDisplay}</strong>
+                  <div class="mb-3 d-flex justify-content-between align-items-center" style="border-bottom: 1px solid rgba(255, 255, 255, 0.05); padding-bottom: 8px;">
+                      <span class="small" style="color:#fff;"><i class="fas fa-map-marker-alt me-2"></i>Cidade</span>
+                      <strong style="color:#fff; font-size:0.9rem;">${cityDisplay}</strong>
                   </div>
-                  <div class="mb-3 d-flex justify-content-between align-items-center" style="border-bottom: 1px solid rgba(255,255,255,0.05); padding-bottom: 8px;">
-                      <span class="text-muted small"><i class="fas fa-calendar-alt me-2"></i>Membro desde</span>
-                      <strong style="color:var(--text-main,#fff); font-size:0.9rem;">${dataCriacao}</strong>
+                  <div class="mb-3 d-flex justify-content-between align-items-center" style="border-bottom: 1px solid rgba(255, 255, 255, 0.05); padding-bottom: 8px;">
+                      <span class="small" style="color:#fff;"><i class="fas fa-calendar-alt me-2"></i>Membro desde</span>
+                      <strong style="color:#fff; font-size:0.9rem;">${dataCriacao}</strong>
                   </div>
                   <div class="d-flex justify-content-between align-items-center">
-                      <span class="text-muted small"><i class="fas fa-check-double me-2"></i>Verificações enviadas</span>
+                      <span class="small" style="color:#fff;"><i class="fas fa-check-double me-2"></i>Verificações enviadas</span>
                       <span class="badge bg-primary" style="font-size:0.9rem; padding: 0.35em 0.7em; font-weight:700;">${totalChecagens}</span>
                   </div>
               </div>
