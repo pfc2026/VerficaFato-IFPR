@@ -1,8 +1,4 @@
 {
-  "version": 2,
   "buildCommand": "npm ci",
-  "installCommand": "npm ci",
-  "rewrites": [
-    { "source": "/api/:path*", "destination": "/api/index" }
-  ]
+  "installCommand": "npm ci"
 }
