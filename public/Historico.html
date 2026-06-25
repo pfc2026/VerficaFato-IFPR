@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Seu Histórico — VerificaFato</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+  <link rel="stylesheet" href="css/style.css">
+  <style>
+    .historico-wrapper {
+      padding: 3rem 0;
+    }
+    .historico-card {
+      background: var(--card-bg);
+      backdrop-filter: blur(16px);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      padding: 2rem;
+    }
+    .query-item {
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 1.25rem;
+      margin-bottom: 1rem;
+      transition: transform var(--transition), box-shadow var(--transition);
+    }
+    .query-item:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 20px rgba(0,0,0,0.15);
+    }
+    .badge-veredito {
+      font-weight: 700;
+      padding: 0.35em 0.8em;
+      border-radius: 8px;
+      font-size: 0.8rem;
+    }
+  </style>
+</head>
+<body>
+  <!-- Alertas flutuantes -->
+  <div id="alertContainer" class="position-fixed top-0 start-50 translate-middle-x p-3" style="z-index:2000;" aria-live="polite"></div>
+
+  <!-- Header -->
+  <header class="site-header">
+    <div class="container header-shell">
+      <a class="brand-link" href="/">
+        <span class="brand-icon"><i class="fas fa-shield-halved" aria-hidden="true"></i></span>
+        <span>VerificaFato</span>
+      </a>
+
+      <nav class="site-nav" id="siteNav" aria-label="Navegação principal">
+        <!-- Links dinâmicos -->
+      </nav>
+
+      <div id="theme-toggle-container" class="theme-toggle-inline"></div>
+    </div>
+  </header>
+
+  <main class="container historico-wrapper">
+    <div class="historico-card">
+      <div class="d-flex align-items-center justify-content-between mb-4 flex-wrap gap-2">
+        <div>
+          <span class="section-kicker">Histórico pessoal</span>
+          <h1 class="h3 m-0"><i class="fas fa-history me-2"></i>Minhas Consultas</h1>
+        </div>
+        <a href="/" class="btn btn-verify btn-sm"><i class="fas fa-plus me-1"></i> Nova Verificação</a>
+      </div>
+
+      <div id="historico-list">
+        <!-- Itens carregados via JS -->
+      </div>
+    </div>
+  </main>
+
+  <!-- Modal de resultado detalhado -->
+  <div class="modal fade" id="resultsModal" tabindex="-1" aria-labelledby="resultsModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
+      <div class="modal-content glass-card">
+        <div class="modal-header border-0">
+          <h5 class="modal-title" id="resultsModalLabel">
+            <i class="fas fa-check-double me-2"></i>Detalhes da Verificação
+          </h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
+        </div>
+        <div class="modal-body" id="modalContent"></div>
+        <div class="modal-footer border-0">
+          <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Fechar</button>
+          <button type="button" class="btn btn-verify btn-sm" id="shareBtn">
+            <i class="fas fa-share me-1"></i>Compartilhar
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <footer class="footer mt-5">
+    <div class="container footer-bottom">
+      <small>&copy; 2026 VerificaFato — Foco no Oeste Paranaense</small>
+    </div>
+  </footer>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="js/dark-mode.js"></script>
+  <script src="js/Historico.js"></script>
+</body>
+</html>

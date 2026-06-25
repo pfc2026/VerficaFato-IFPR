@@ -1,0 +1,445 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Painel Administrativo — VerificaFato</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+  <link rel="stylesheet" href="css/style.css">
+  <style>
+    .admin-wrapper {
+      padding: 3rem 0;
+    }
+    .admin-card {
+      background: var(--card-bg);
+      backdrop-filter: blur(16px);
+      border: 1px solid var(--border);
+      border-radius: 24px;
+      padding: 2.5rem;
+    }
+    .nav-tabs-admin {
+      display: flex;
+      gap: 0.5rem;
+      border-bottom: 1px solid var(--border);
+      margin-bottom: 2rem;
+      flex-wrap: wrap;
+    }
+    .tab-admin-btn {
+      background: transparent;
+      border: none;
+      color: var(--text-muted);
+      padding: 0.75rem 1.25rem;
+      font-weight: 600;
+      font-size: 0.95rem;
+      border-bottom: 3px solid transparent;
+      cursor: pointer;
+      transition: all var(--transition);
+    }
+    .tab-admin-btn:hover {
+      color: var(--text-main);
+    }
+    .tab-admin-btn.active {
+      color: var(--secondary);
+      border-bottom-color: var(--secondary);
+    }
+    .panel-admin {
+      display: none;
+    }
+    .panel-admin.active {
+      display: block;
+    }
+    .stat-card {
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 1.5rem;
+      text-align: center;
+      transition: transform var(--transition);
+    }
+    .stat-card:hover {
+      transform: translateY(-4px);
+    }
+    .stat-card h3 {
+      font-size: 0.85rem;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      opacity: 0.7;
+      margin-bottom: 0.5rem;
+    }
+    .stat-card .value {
+      font-size: 2rem;
+      font-weight: 800;
+      color: var(--secondary);
+    }
+    .glass-table {
+      width: 100%;
+      border-collapse: collapse;
+      color: var(--text-main);
+    }
+    .glass-table th, .glass-table td {
+      padding: 0.85rem 1rem;
+      border-bottom: 1px solid var(--border);
+      text-align: left;
+      font-size: 0.88rem;
+    }
+    .glass-table th {
+      font-weight: 600;
+      opacity: 0.85;
+      background: rgba(0,0,0,0.15);
+    }
+    .glass-table tbody tr:hover {
+      background: rgba(255,255,255,0.03);
+    }
+    .admin-form-input, .admin-form-select, .admin-form-textarea {
+      background: rgba(255,255,255,0.1) !important;
+      border: 1px solid var(--border) !important;
+      border-radius: 8px !important;
+      color: var(--text-main) !important;
+    }
+    .admin-form-input:focus, .admin-form-select:focus, .admin-form-textarea:focus {
+      border-color: var(--secondary) !important;
+      box-shadow: 0 0 0 3px rgba(39,174,96,0.2) !important;
+      outline: none;
+    }
+    .admin-form-select option {
+      background: #2c3e50;
+      color: #fff;
+    }
+    .btn-edit-actions {
+      display: flex;
+      gap: 0.4rem;
+    }
+  </style>
+</head>
+<body>
+  <!-- Alertas flutuantes -->
+  <div id="alertContainer" class="position-fixed top-0 start-50 translate-middle-x p-3" style="z-index:2000;" aria-live="polite"></div>
+
+  <!-- Header -->
+  <header class="site-header">
+    <div class="container header-shell">
+      <a class="brand-link" href="/">
+        <span class="brand-icon"><i class="fas fa-shield-halved" aria-hidden="true"></i></span>
+        <span>VerificaFato</span>
+      </a>
+
+      <nav class="site-nav" id="siteNav" aria-label="Navegação principal">
+        <!-- Links dinâmicos -->
+      </nav>
+
+      <div id="theme-toggle-container" class="theme-toggle-inline"></div>
+    </div>
+  </header>
+
+  <main class="container admin-wrapper" id="admin-main-section" style="display:none;">
+    <div class="admin-card">
+      <div class="d-flex align-items-center justify-content-between mb-4 flex-wrap gap-2">
+        <div>
+          <span class="section-kicker">Gerenciamento do sistema</span>
+          <h1 class="h3 m-0"><i class="fas fa-screwdriver-wrench me-2"></i>Painel do Administrador</h1>
+        </div>
+      </div>
+
+      <!-- Menu de Abas -->
+      <div class="nav-tabs-admin" role="tablist">
+        <button class="tab-admin-btn active" onclick="switchTab('resumo')"><i class="fas fa-chart-line me-1"></i> Resumo</button>
+        <button class="tab-admin-btn" onclick="switchTab('fontes')"><i class="fas fa-globe me-1"></i> Fontes</button>
+        <button class="tab-admin-btn" onclick="switchTab('licoes')"><i class="fas fa-book-open me-1"></i> Lições</button>
+        <button class="tab-admin-btn" onclick="switchTab('usuarios')"><i class="fas fa-users me-1"></i> Usuários</button>
+        <button class="tab-admin-btn" onclick="switchTab('verificacoes')"><i class="fas fa-clipboard-list me-1"></i> Histórico Global</button>
+      </div>
+
+      <!-- ── PAINEL: RESUMO ── -->
+      <div id="panel-resumo" class="panel-admin active">
+        <div class="row g-3 mb-4">
+          <div class="col-6 col-md-3">
+            <div class="stat-card">
+              <h3>Usuários</h3>
+              <div class="value" id="stat-usuarios">0</div>
+            </div>
+          </div>
+          <div class="col-6 col-md-3">
+            <div class="stat-card">
+              <h3>Fontes</h3>
+              <div class="value" id="stat-fontes">0</div>
+            </div>
+          </div>
+          <div class="col-6 col-md-3">
+            <div class="stat-card">
+              <h3>Lições</h3>
+              <div class="value" id="stat-licoes">0</div>
+            </div>
+          </div>
+          <div class="col-6 col-md-3">
+            <div class="stat-card">
+              <h3>Verificações</h3>
+              <div class="value" id="stat-verificacoes">0</div>
+            </div>
+          </div>
+        </div>
+
+        <h2 class="h5 mb-3"><i class="fas fa-history me-1"></i> Últimas Atividades</h2>
+        <div class="table-responsive">
+          <table class="glass-table">
+            <thead>
+              <tr>
+                <th>Usuário</th>
+                <th>Texto</th>
+                <th>Veredito</th>
+                <th>Data</th>
+              </tr>
+            </thead>
+            <tbody id="resumo-recentes-list">
+              <tr>
+                <td colspan="4" class="text-center text-muted">Carregando atividades recentes...</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- ── PAINEL: FONTES ── -->
+      <div id="panel-fontes" class="panel-admin">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+          <h2 class="h5 m-0">Fontes Regionais Cadastradas</h2>
+          <button class="btn btn-verify btn-sm" onclick="abrirModalFonte()"><i class="fas fa-plus me-1"></i> Nova Fonte</button>
+        </div>
+        <div class="table-responsive">
+          <table class="glass-table">
+            <thead>
+              <tr>
+                <th>Nome</th>
+                <th>URL</th>
+                <th>Ordem</th>
+                <th>Status</th>
+                <th>Ações</th>
+              </tr>
+            </thead>
+            <tbody id="fontes-table-body">
+              <tr>
+                <td colspan="5" class="text-center text-muted">Carregando fontes...</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- ── PAINEL: LIÇÕES ── -->
+      <div id="panel-licoes" class="panel-admin">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+          <h2 class="h5 m-0">Lições de Educação Midiática</h2>
+          <button class="btn btn-verify btn-sm" onclick="abrirModalLicao()"><i class="fas fa-plus me-1"></i> Criar Lição</button>
+        </div>
+        <div class="table-responsive">
+          <table class="glass-table">
+            <thead>
+              <tr>
+                <th>ID</th>
+                <th>Título</th>
+                <th>Categoria</th>
+                <th>Nível</th>
+                <th>Ordem</th>
+                <th>Status</th>
+                <th>Ações</th>
+              </tr>
+            </thead>
+            <tbody id="licoes-table-body">
+              <tr>
+                <td colspan="7" class="text-center text-muted">Carregando lições...</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- ── PAINEL: USUÁRIOS ── -->
+      <div id="panel-usuarios" class="panel-admin">
+        <h2 class="h5 mb-3">Gerenciamento de Contas de Usuários</h2>
+        <div class="table-responsive">
+          <table class="glass-table">
+            <thead>
+              <tr>
+                <th>Nome</th>
+                <th>E-mail</th>
+                <th>Permissão</th>
+                <th>Status</th>
+                <th>Ações</th>
+              </tr>
+            </thead>
+            <tbody id="usuarios-table-body">
+              <tr>
+                <td colspan="5" class="text-center text-muted">Carregando usuários...</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- ── PAINEL: HISTÓRICO GLOBAL ── -->
+      <div id="panel-verificacoes" class="panel-admin">
+        <h2 class="h5 mb-3">Histórico Global de Consultas</h2>
+        <div class="table-responsive">
+          <table class="glass-table">
+            <thead>
+              <tr>
+                <th>Usuário</th>
+                <th>Texto</th>
+                <th>Veredito</th>
+                <th>Data</th>
+                <th>Ações</th>
+              </tr>
+            </thead>
+            <tbody id="verificacoes-table-body">
+              <tr>
+                <td colspan="5" class="text-center text-muted">Carregando histórico global...</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <!-- ── MODAL: FONTE ── -->
+  <div class="modal fade" id="modalFonte" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content glass-card">
+        <div class="modal-header border-0">
+          <h5 class="modal-title" id="modalFonteTitle">Adicionar Fonte</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
+        </div>
+        <form id="formFonte" onsubmit="salvarFonte(event)">
+          <input type="hidden" id="fonte-id">
+          <div class="modal-body">
+            <div class="mb-3">
+              <label for="fonte-nome" class="form-label small fw-bold">Nome do Veículo</label>
+              <input type="text" class="form-control admin-form-input" id="fonte-nome" placeholder="Ex.: Rádio Colmeia" required>
+            </div>
+            <div class="mb-3">
+              <label for="fonte-url" class="form-label small fw-bold">URL da Homepage</label>
+              <input type="url" class="form-control admin-form-input" id="fonte-url" placeholder="https://exemplo.com" required>
+            </div>
+            <div class="row g-2">
+              <div class="col-6 mb-3">
+                <label for="fonte-ordem" class="form-label small fw-bold">Ordem de Exibição</label>
+                <input type="number" class="form-control admin-form-input" id="fonte-ordem" value="0">
+              </div>
+              <div class="col-6 d-flex align-items-center pt-3">
+                <div class="form-check">
+                  <input class="form-check-input" type="checkbox" id="fonte-ativo" checked>
+                  <label class="form-check-label small fw-bold" for="fonte-ativo">Ativo</label>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="modal-footer border-0">
+            <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cancelar</button>
+            <button type="submit" class="btn btn-verify btn-sm">Salvar</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── MODAL: LIÇÃO ── -->
+  <div class="modal fade" id="modalLicao" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
+      <div class="modal-content glass-card">
+        <div class="modal-header border-0">
+          <h5 class="modal-title" id="modalLicaoTitle">Criar Lição Educativa</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
+        </div>
+        <form id="formLicao" onsubmit="salvarLicao(event)">
+          <input type="hidden" id="licao-id">
+          <div class="modal-body">
+            <div class="row g-2">
+              <div class="col-md-6 mb-3">
+                <label for="licao-lessonId" class="form-label small fw-bold">ID Único (lessonId)</label>
+                <input type="text" class="form-control admin-form-input" id="licao-lessonId" placeholder="Ex.: maiusculas" required>
+              </div>
+              <div class="col-md-6 mb-3">
+                <label for="licao-titulo" class="form-label small fw-bold">Título da Lição</label>
+                <input type="text" class="form-control admin-form-input" id="licao-titulo" placeholder="Ex.: Atenção com Maiúsculas" required>
+              </div>
+            </div>
+            <div class="mb-3">
+              <label for="licao-descricao" class="form-label small fw-bold">Descrição Curta (aparece no card)</label>
+              <input type="text" class="form-control admin-form-input" id="licao-descricao" placeholder="Resumo em uma frase..." required>
+            </div>
+            <div class="row g-2">
+              <div class="col-6 col-md-3 mb-3">
+                <label for="licao-categoria" class="form-label small fw-bold">Categoria</label>
+                <select class="form-select admin-form-select" id="licao-categoria" required>
+                  <option value="formato">Formato</option>
+                  <option value="linguagem">Linguagem</option>
+                  <option value="verificacao">Verificação</option>
+                  <option value="analise">Análise</option>
+                  <option value="psicologia">Psicologia</option>
+                  <option value="midia">Mídia</option>
+                </select>
+              </div>
+              <div class="col-6 col-md-3 mb-3">
+                <label for="licao-nivel" class="form-label small fw-bold">Nível</label>
+                <select class="form-select admin-form-select" id="licao-nivel">
+                  <option value="basico">Básico</option>
+                  <option value="intermediario">Intermediário</option>
+                  <option value="avancado">Avançado</option>
+                </select>
+              </div>
+              <div class="col-6 col-md-3 mb-3">
+                <label for="licao-icone" class="form-label small fw-bold">Ícone (FontAwesome)</label>
+                <input type="text" class="form-control admin-form-input" id="licao-icone" value="fa-book">
+              </div>
+              <div class="col-6 col-md-3 mb-3">
+                <label for="licao-ordem" class="form-label small fw-bold">Ordem</label>
+                <input type="number" class="form-control admin-form-input" id="licao-ordem" value="0">
+              </div>
+            </div>
+            <div class="mb-3">
+              <div class="form-check">
+                <input class="form-check-input" type="checkbox" id="licao-ativo" checked>
+                <label class="form-check-label small fw-bold" for="licao-ativo">Ativo (Aparece no site principal)</label>
+              </div>
+            </div>
+            <div class="mb-3">
+              <label for="licao-conteudoHTML" class="form-label small fw-bold">Conteúdo HTML Detalhado (Exibido no modal de leitura)</label>
+              <textarea class="form-control admin-form-textarea" id="licao-conteudoHTML" rows="8" placeholder="<h3>Subtítulo</h3><p>Corpo da lição...</p>" required></textarea>
+            </div>
+          </div>
+          <div class="modal-footer border-0">
+            <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cancelar</button>
+            <button type="submit" class="btn btn-verify btn-sm">Salvar Lição</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── MODAL: VER DETALHES DA CONSULTA ── -->
+  <div class="modal fade" id="resultsModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
+      <div class="modal-content glass-card">
+        <div class="modal-header border-0">
+          <h5 class="modal-title">Detalhes da Verificação</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
+        </div>
+        <div class="modal-body" id="modalContent"></div>
+        <div class="modal-footer border-0">
+          <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Fechar</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <footer class="footer mt-5">
+    <div class="container footer-bottom">
+      <small>&copy; 2026 VerificaFato — Foco no Oeste Paranaense</small>
+    </div>
+  </footer>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="js/dark-mode.js"></script>
+  <script src="js/Admin.js"></script>
+</body>
+</html>
