@@ -675,7 +675,7 @@ function mostrarModalPerfil() {
     modal.show();
 
     const token = localStorage.getItem('vf-token');
-    fetch(`${API_BASE}/api/auth/me`, {
+    fetch(`${API_BASE}/api/auth/perfil`, {
         headers: {
             'Authorization': `Bearer ${token}`
         }
