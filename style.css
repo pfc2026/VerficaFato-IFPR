@@ -815,3 +815,196 @@ a {
 .btn-close {
     filter: invert(1);
 }
+
+/* =========================================================
+   RESPONSIVIDADE — @media queries
+   ========================================================= */
+
+/* ── Tablets (≤768px) ────────────────────────────────────── */
+@media (max-width: 768px) {
+    .hero-section {
+        padding: 2.5rem 0;
+    }
+
+    .verification-panel {
+        padding: 1.5rem;
+        border-radius: 16px;
+    }
+
+    .header-shell {
+        gap: 0.75rem;
+    }
+
+    .site-nav {
+        gap: 0.85rem;
+    }
+
+    .feature-grid {
+        grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+        gap: 1.1rem;
+    }
+
+    .education-grid {
+        grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    }
+
+    .sources-grid {
+        grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+    }
+
+    .lesson-content {
+        max-width: 90vw;
+    }
+}
+
+/* ── Celulares (≤576px) ──────────────────────────────────── */
+@media (max-width: 576px) {
+    .site-header {
+        padding: 0.5rem 0;
+    }
+
+    .header-shell {
+        flex-wrap: wrap;
+        row-gap: 0.5rem;
+    }
+
+    .brand-link {
+        font-size: 1.05rem;
+    }
+
+    .brand-icon {
+        width: 30px;
+        height: 30px;
+        font-size: 0.85rem;
+    }
+
+    .site-nav {
+        order: 3;
+        width: 100%;
+        margin-left: 0;
+        gap: 1rem;
+        overflow-x: auto;
+        -ms-overflow-style: none;
+        scrollbar-width: none;
+    }
+
+    .site-nav::-webkit-scrollbar {
+        display: none;
+    }
+
+    .hero-section {
+        padding: 2rem 0;
+    }
+
+    .hero-shell {
+        gap: 1.75rem;
+    }
+
+    .tagline {
+        font-size: 1rem;
+        margin-bottom: 1.5rem;
+    }
+
+    .hero-metrics {
+        gap: 1.25rem;
+    }
+
+    .verification-panel {
+        padding: 1.25rem;
+        border-radius: 14px;
+    }
+
+    .panel-heading {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
+    .select-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .btn-verify {
+        padding: 0.8rem 1.1rem;
+        font-size: 0.92rem;
+    }
+
+    .section-heading h2 {
+        font-size: 1.5rem;
+    }
+
+    .features-section,
+    .education-section,
+    .sources-section {
+        padding: 3rem 0;
+    }
+
+    .feature-grid {
+        grid-template-columns: 1fr 1fr;
+        gap: 1rem;
+    }
+
+    .feature-card {
+        padding: 1.5rem 1rem;
+    }
+
+    .sources-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+
+    .education-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .education-tabs {
+        flex-wrap: nowrap;
+        justify-content: flex-start;
+        overflow-x: auto;
+        padding-bottom: 0.25rem;
+    }
+
+    .tab-btn {
+        flex: 0 0 auto;
+    }
+
+    .modal-dialog {
+        margin: 0.75rem;
+    }
+
+    .lesson-content {
+        max-height: 90vh;
+    }
+
+    .lesson-content .modal-header,
+    .lesson-content .modal-body {
+        padding-left: 1.1rem;
+        padding-right: 1.1rem;
+    }
+
+    .footer {
+        padding: 2rem 0 1rem;
+        text-align: center;
+    }
+
+    .footer-contact li {
+        justify-content: center;
+    }
+}
+
+/* ── Celulares pequenos (≤400px) ─────────────────────────── */
+@media (max-width: 400px) {
+    .hero-metrics {
+        gap: 0.9rem;
+    }
+
+    .hero-metrics strong {
+        font-size: 1.3rem;
+    }
+
+    .feature-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .sources-grid {
+        grid-template-columns: 1fr 1fr;
+    }
+}

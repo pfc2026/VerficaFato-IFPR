@@ -121,6 +121,36 @@
             color: var(--text-muted); cursor: pointer;
             padding: 0; font-size: 0.85rem;
         }
+
+        /* ── Responsividade ─────────────────────────────────── */
+        @media (max-width: 576px) {
+            .auth-wrapper {
+                padding: 1.5rem 0.75rem;
+            }
+            .auth-card {
+                padding: 1.5rem 1.25rem;
+                border-radius: 18px;
+            }
+            .auth-logo .brand-icon-lg {
+                width: 50px; height: 50px;
+                font-size: 1.5rem;
+            }
+            .auth-logo h1 {
+                font-size: 1.3rem;
+            }
+            .auth-tabs {
+                flex-direction: column;
+            }
+            .field-auth input {
+                font-size: 0.9rem;
+            }
+        }
+
+        @media (max-width: 360px) {
+            .auth-card {
+                padding: 1.25rem 1rem;
+            }
+        }
     </style>
 </head>
 <body>
