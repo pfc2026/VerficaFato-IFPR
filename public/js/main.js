@@ -4,33 +4,6 @@
 
 const API_BASE = '';
 
-// ── Cidades ───────────────────────────────────────────────
-const WESTERN_CITIES = [
-    'Assis Chateaubriand','Braganey','Cafelândia','Campo Bonito',
-    'Capitão Leônidas Marques','Cascavel','Catanduvas','Céu Azul',
-    'Corbélia','Diamante do Sul','Diamante d\'Oeste','Entre Rios do Oeste',
-    'Foz do Iguaçu','Guaraniaçu','Guaíra','Ibema','Iguatu',
-    'Itaipulândia','Jesuítas','Jussara','Lindoeste','Marechal Cândido Rondon',
-    'Maripá','Matelândia','Medianeira','Mercedes','Missal',
-    'Nova Aurora','Nova Santa Rosa','Ouro Verde do Oeste','Palotina',
-    'Pato Bragado','Quatro Pontes','Ramilândia','Santa Helena',
-    'Santa Lúcia','Santa Tereza do Oeste','Santa Terezinha de Itaipu',
-    'São José das Palmeiras','São Miguel do Iguaçu','São Pedro do Iguaçu',
-    'Serranópolis do Iguaçu','Terra Roxa','Toledo','Três Barras do Paraná',
-    'Tupãssi','Ubiratã','Vera Cruz do Oeste'
-];
-
-const REGIONAL_SOURCES = [
-    { nome: 'Rádio Colméia (Cascavel)', url: 'https://radiocolmeia.com.br' },
-    { nome: 'Jornal O Paraná',          url: 'https://www.oparana.com.br' },
-    { nome: 'Gazeta do Povo',           url: 'https://www.gazetadopovo.com.br' },
-    { nome: 'Jornal de Toledo',         url: 'https://www.jornaldetoledo.com.br' },
-    { nome: 'G1 Paraná',               url: 'https://g1.globo.com/pr' },
-    { nome: 'Rádio Cultura Toledo',     url: 'https://www.radioculturatoledo.com.br' },
-    { nome: 'Prefeituras Oficiais',     url: 'https://www.municipios.pr.gov.br' },
-    { nome: 'TJ Paraná',               url: 'https://www.tjpr.jus.br' }
-];
-
 // ── Sinais de análise local (categorizados) ───────────────
 // Cada sinal tem: regex, peso, label, categoria (para agrupar na UI)
 const SINAIS_FALSO = [
@@ -547,28 +520,11 @@ function renderResults(data, texto, cidade, categoria) {
             ${data.porcentagem < 40
                 ? 'Os indícios apontam para conteúdo falso ou enganoso. Evite compartilhar e, se possível, sinalize a fonte original como não confiável.'
                 : data.porcentagem < 55
-                ? 'O resultado é inconclusivo. Antes de compartilhar, busque a mesma informação em pelo menos duas fontes jornalísticas confiáveis listadas abaixo.'
+                ? 'O resultado é inconclusivo. Antes de compartilhar, busque a mesma informação em pelo menos duas fontes jornalísticas confiáveis.'
                 : data.porcentagem < 75
                 ? 'Os sinais favorecem a veracidade, mas vale confirmar detalhes específicos (datas, números, nomes) na fonte original antes de compartilhar.'
                 : 'Os indícios apontam para conteúdo verdadeiro. Ainda assim, é uma boa prática citar a fonte original ao compartilhar.'}
         </small>
-    </div>`;
-
-    // ── Fontes recomendadas ───────────────────────────────
-    html += `
-    <div class="p-3" style="background:var(--card-bg,rgba(255,255,255,0.06));border:1px solid var(--border,rgba(255,255,255,0.12));border-radius:14px">
-        <h6 class="mb-2"><i class="fas fa-lightbulb me-2" style="color:#F39C12"></i>Fontes confiáveis para confirmar</h6>
-        <div class="row g-2">
-            ${REGIONAL_SOURCES.map(s => `
-            <div class="col-12 col-sm-6">
-                <a href="${s.url}" target="_blank" rel="noopener"
-                   style="display:flex;align-items:center;gap:0.5rem;font-size:0.82rem;text-decoration:none;opacity:0.85;transition:opacity .2s"
-                   onmouseover="this.style.opacity=1" onmouseout="this.style.opacity=.85">
-                    <i class="fas fa-check-circle" style="color:#27AE60;flex-shrink:0"></i>${s.nome}
-                    <i class="fas fa-arrow-up-right-from-square" style="font-size:0.65rem;opacity:0.5;margin-left:auto"></i>
-                </a>
-            </div>`).join('')}
-        </div>
     </div>`;
 
     // ── Aviso legal ───────────────────────────────────────

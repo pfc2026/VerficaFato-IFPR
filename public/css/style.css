@@ -623,10 +623,6 @@ main { flex: 1 0 auto; }
 .article-source-url { color: #74b9ff; font-size: 0.72rem; }
 .min-width-0 { min-width: 0; }
 
-.regional-tips {
-    border-left: 4px solid var(--accent);
-}
-
 /* ── Footer ──────────────────────────────────────────────── */
 .footer {
     margin-top: auto;

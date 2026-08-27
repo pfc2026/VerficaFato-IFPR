@@ -635,17 +635,6 @@ function renderResultadosDetalhes(item) {
 }
 
 // ── Funções de Apoio Unificadas para Renderização de Detalhes ──
-const REGIONAL_SOURCES = [
-    { nome: 'Rádio Colméia (Cascavel)', url: 'https://radiocolmeia.com.br' },
-    { nome: 'Jornal O Paraná',          url: 'https://www.oparana.com.br' },
-    { nome: 'Gazeta do Povo',           url: 'https://www.gazetadopovo.com.br' },
-    { nome: 'Jornal de Toledo',         url: 'https://www.jornaldetoledo.com.br' },
-    { nome: 'G1 Paraná',               url: 'https://g1.globo.com/pr' },
-    { nome: 'Rádio Cultura Toledo',     url: 'https://www.radioculturatoledo.com.br' },
-    { nome: 'Prefeituras Oficiais',     url: 'https://www.municipios.pr.gov.br' },
-    { nome: 'TJ Paraná',               url: 'https://www.tjpr.jus.br' }
-];
-
 const SINAIS_FALSO = [
     { regex: /\bURGENTE\b|\bURGENTÍSSIMO\b/g,                      peso: 10, label: 'Uso de "URGENTE" em maiúsculas', categoria: 'Urgência/Clickbait' },
     { regex: /compartilhe antes que (apaguem|removam|bloqueiem)/gi, peso: 18, label: 'Pedido de compartilhamento por medo de remoção', categoria: 'Urgência/Clickbait' },
@@ -948,22 +937,6 @@ function renderResults(data, texto, cidade, categoria) {
                 ? 'Os sinais favorecem a veracidade, mas vale confirmar detalhes específicos (datas, números, nomes) na fonte original antes de compartilhar.'
                 : 'Os indícios apontam para conteúdo verdadeiro. Ainda assim, é uma boa prática citar a fonte original ao compartilhar.'}
         </small>
-    </div>`;
-
-    html += `
-    <div class="p-3" style="background:var(--card-bg,rgba(255,255,255,0.06));border:1px solid var(--border,rgba(255,255,255,0.12));border-radius:14px">
-        <h6 class="mb-2"><i class="fas fa-lightbulb me-2" style="color:#F39C12"></i>Fontes confiáveis para confirmar</h6>
-        <div class="row g-2">
-            ${REGIONAL_SOURCES.map(s => `
-            <div class="col-12 col-sm-6">
-                <a href="${s.url}" target="_blank" rel="noopener"
-                   style="display:flex;align-items:center;gap:0.5rem;font-size:0.82rem;text-decoration:none;opacity:0.85;transition:opacity .2s"
-                   onmouseover="this.style.opacity=1" onmouseout="this.style.opacity=.85">
-                    <i class="fas fa-check-circle" style="color:#27AE60;flex-shrink:0"></i>${s.nome}
-                    <i class="fas fa-arrow-up-right-from-square" style="font-size:0.65rem;opacity:0.5;margin-left:auto"></i>
-                </a>
-            </div>`).join('')}
-        </div>
     </div>`;
 
     html += `

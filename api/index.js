@@ -375,15 +375,6 @@ async function seedLicoesIniciais() {
                         <li><strong>4. Procure em outro lugar:</strong> A mesma notícia aparece em outros jornais?</li>
                         <li><strong>5. Veja se tem byline:</strong> Tem nome de jornalista e data clara?</li>
                     </ul>
-                    <h3>Fontes confiáveis (Oeste do Paraná):</h3>
-                    <ul>
-                        <li>G1 Paraná</li>
-                        <li>Jornal O Paraná</li>
-                        <li>Gazeta do Povo</li>
-                        <li>Rádio Colmeia</li>
-                        <li>Tribunal de Justiça do Paraná</li>
-                        <li>Câmaras Oficiais dos Municípios</li>
-                    </ul>
                     <h3>Sinais de alerta em websites:</h3>
                     <ul>
                         <li>Muitos anúncios e pop-ups</li>
