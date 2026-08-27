@@ -101,7 +101,7 @@ function analisarTextoLocalmente(texto) {
         porcentagemLocal = 50;
     } else {
         const rawScore = (pesoConfiavel / (pesoFalso + pesoConfiavel)) * 100;
-        porcentagemLocal = Math.round(Math.max(8, Math.min(92, rawScore)));
+        porcentagemLocal = Math.round(Math.max(8, Math.min(74, rawScore)));
     }
 
     return {
@@ -113,10 +113,112 @@ function analisarTextoLocalmente(texto) {
     };
 }
 
+function limitar(valor, minimo = 0, maximo = 100) {
+    return Math.max(minimo, Math.min(maximo, Math.round(valor)));
+}
+
+function extrairInformacoesNoticia(texto) {
+    const palavrasIgnoradas = new Set([
+        'para', 'como', 'mais', 'essa', 'esse', 'isso', 'sobre', 'entre', 'quando',
+        'onde', 'porque', 'também', 'ainda', 'muito', 'pode', 'podem', 'segundo',
+        'foram', 'estão', 'está', 'com', 'sem', 'uma', 'uns', 'das', 'dos', 'que'
+    ]);
+    const palavras = texto.match(/[A-Za-zÀ-ÿ][A-Za-zÀ-ÿ'-]{3,}/g) || [];
+    const frequencia = new Map();
+    palavras.forEach(palavra => {
+        const chave = palavra.toLowerCase();
+        if (!palavrasIgnoradas.has(chave)) frequencia.set(chave, (frequencia.get(chave) || 0) + 1);
+    });
+
+    const palavrasImportantes = [...frequencia.entries()]
+        .sort((a, b) => (b[1] - a[1]) || (b[0].length - a[0].length))
+        .slice(0, 10)
+        .map(([palavra]) => palavra);
+    const entidades = [...new Set(texto.match(/\b[A-ZÁÀÂÃÉÊÍÓÔÕÚÇ][A-Za-zÀ-ÿ'-]+(?:\s+[A-ZÁÀÂÃÉÊÍÓÔÕÚÇ][A-Za-zÀ-ÿ'-]+){0,3}/g) || [])]
+        .filter(item => item.length > 3)
+        .filter(item => !/^(URGENTE|ATENÇÃO|COMPARTILHE|IMPORTANTE)$/i.test(item))
+        .slice(0, 8);
+    const datas = [...new Set(texto.match(/\b\d{1,2}[/-]\d{1,2}[/-]\d{2,4}\b|\b\d{1,2} de [A-Za-zÀ-ÿ]+ de \d{4}\b/gi) || [])].slice(0, 5);
+    const textoSemDatas = texto.replace(/\b\d{1,2}[/-]\d{1,2}[/-]\d{2,4}\b|\b\d{1,2} de [A-Za-zÀ-ÿ]+ de \d{4}\b/gi, ' ');
+    const numeros = [...new Set(textoSemDatas.match(/\b(?:R\$\s?)?\d[\d.,]*(?:\s?%|\s?(?:mil|milhões?|bilhões?))?\b/gi) || [])].slice(0, 8);
+    const links = [...new Set((texto.match(/https?:\/\/[^\s)]+/gi) || []).map(link => link.replace(/[.,!?;:]+$/, '')))].slice(0, 5);
+    const primeiraFrase = texto.split(/(?<=[.!?])\s+/)[0]?.trim() || texto.trim();
+
+    return {
+        palavrasImportantes,
+        entidades,
+        numeros,
+        datas,
+        links,
+        alegacaoPrincipal: primeiraFrase.slice(0, 240),
+        quantidadePalavras: palavras.length,
+        quantidadeCaracteres: texto.length
+    };
+}
+
+function analisarDimensoesNoticia(texto, analiseLocal, dadosAPI = {}) {
+    const alerta = analiseLocal.alertasFalso;
+    const categorias = new Set(alerta.map(item => item.categoria));
+    const temLink = /https?:\/\/[^\s]+/i.test(texto);
+    const temData = /\b\d{1,2}[/-]\d{1,2}[/-]\d{2,4}\b|\b\d{1,2} de [a-zá-ú]+ de \d{4}\b/i.test(texto);
+    const temAtribuicao = /\b(segundo|conforme|de acordo com|afirmou|declarou|informou)\b/i.test(texto);
+    const quantidadePalavras = texto.trim().split(/\s+/).filter(Boolean).length;
+
+    const pontosSensacionalismo =
+        (categorias.has('Urgência/Clickbait') ? 38 : 0) +
+        (categorias.has('Conspiração/Desconfiança institucional') ? 25 : 0) +
+        (alerta.some(item => item.label.includes('exclamações')) ? 15 : 0) +
+        (alerta.some(item => item.label.includes('maiúsculas')) ? 10 : 0) +
+        (alerta.some(item => item.label.includes('emojis')) ? 5 : 0);
+
+    const qualidadeFonte = limitar(
+        (temLink ? 40 : 0) +
+        (temAtribuicao ? 25 : 0) +
+        (temData ? 20 : 0) +
+        (analiseLocal.alertasConfiavel.some(item => item.label.includes('veículo')) ? 15 : 0)
+    );
+    const completude = limitar(
+        (quantidadePalavras >= 80 ? 35 : quantidadePalavras >= 35 ? 20 : 8) +
+        (temData ? 20 : 0) +
+        (temAtribuicao ? 25 : 0) +
+        (temLink ? 20 : 0)
+    );
+    const temFactCheck = Boolean(dadosAPI.encontrados && dadosAPI.resultados?.length);
+
+    return {
+        informacoes: extrairInformacoesNoticia(texto),
+        sensacionalismo: {
+            pontuacao: limitar(pontosSensacionalismo),
+            nivel: pontosSensacionalismo >= 60 ? 'alto' : pontosSensacionalismo >= 30 ? 'moderado' : 'baixo',
+            descricao: pontosSensacionalismo >= 60
+                ? 'Muitos recursos emocionais, urgência ou linguagem de impacto.'
+                : pontosSensacionalismo >= 30
+                    ? 'Há alguns recursos de impacto que merecem conferência.'
+                    : 'Poucos sinais de linguagem sensacionalista foram identificados.'
+        },
+        fonte: {
+            pontuacao: qualidadeFonte,
+            nivel: qualidadeFonte >= 70 ? 'boa' : qualidadeFonte >= 35 ? 'parcial' : 'fraca',
+            descricao: temLink ? 'Há um link ou referência que pode ser conferido.' : 'Não há link de fonte no conteúdo enviado.'
+        },
+        estrutura: {
+            pontuacao: completude,
+            nivel: completude >= 70 ? 'completa' : completude >= 40 ? 'parcial' : 'insuficiente',
+            descricao: `${quantidadePalavras} palavra(s), ${temData ? 'com' : 'sem'} data e ${temAtribuicao ? 'com' : 'sem'} atribuição identificada.`
+        },
+        evidencia: {
+            tipo: temFactCheck ? 'fact-check externo' : 'indícios textuais',
+            quantidade: dadosAPI.quantidade || 0,
+            verificacaoExterna: temFactCheck
+        }
+    };
+}
+
 function calcularVeredictoFinal(data, analiseLocal) {
     const notasAPI = [];
     if (data?.encontrados && Array.isArray(data.resultados)) {
         data.resultados.forEach(r => {
+            if (!/^https?:\/\//i.test(r.url_verificacao || '')) return;
             const nota = mapearAvaliacaoAPI(r.avaliacao);
             if (nota !== null) notasAPI.push(nota);
         });
@@ -163,5 +265,7 @@ module.exports = {
     mapearAvaliacaoAPI,
     analisarTextoLocalmente,
     calcularVeredictoFinal,
+    extrairInformacoesNoticia,
+    analisarDimensoesNoticia,
     obterRotuloVeredicto
 };

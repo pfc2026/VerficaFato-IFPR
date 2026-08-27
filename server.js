@@ -2,7 +2,7 @@ require('dotenv').config();
 const express   = require('express');
 const path      = require('path');
 const mongoose  = require('mongoose');
-const { verificarNoticia }  = require('./googleService');
+const { verificarNoticia, obterConteudoDaUrl }  = require('./googleService');
 
 let autenticarOpcional = async (req, res, next) => {
     // fallback pass-through (não quebra deploy/boot)
@@ -29,6 +29,7 @@ const ConteudoEdu = require('./models/ConteudoEdu');
 
 const {
     analisarTextoLocalmente,
+    analisarDimensoesNoticia,
     calcularVeredictoFinal,
     obterRotuloVeredicto
 } = require('./verificationEngine');
@@ -140,21 +141,37 @@ function gerarExplicacao(resultado) {
 // ── Rota principal de verificação ──────────────────────────
 app.post('/api/verificar', autenticarOpcional, async (req, res) => {
     try {
-        const { texto, cidade, categoria } = req.body;
+        const { texto, link, cidade, categoria } = req.body;
+        const entrada = (texto || link || '').trim();
 
-        if (!texto || texto.trim().length === 0) {
+        if (!entrada) {
             return res.status(400).json({ sucesso: false, erro: 'Texto não fornecido para verificação.' });
         }
-        if (texto.trim().length < 10) {
+        if (texto?.trim() && link?.trim()) {
+            return res.status(400).json({ sucesso: false, erro: 'Envie apenas o texto ou o link da notícia, não os dois.' });
+        }
+        if (entrada.length < 10) {
             return res.status(400).json({ sucesso: false, erro: 'Texto muito curto. Forneça pelo menos 10 caracteres.' });
         }
 
         console.log(`📨 Verificando | cidade: ${cidade || '—'} | categoria: ${categoria || '—'} | user: ${req.user?.email || 'anônimo'}`);
 
-        const dadosAPI = await verificarNoticia(texto.trim());
+        let textoParaAnalise = entrada;
+        let noticia = { url: /^https?:\/\//i.test(entrada) ? entrada : (link || ''), conteudoObtido: false };
+        if (noticia.url) {
+            try {
+                noticia = await obterConteudoDaUrl(noticia.url);
+                textoParaAnalise = noticia.texto;
+            } catch (error) {
+                noticia.erroConteudo = error.message;
+            }
+        }
+
+        const dadosAPI = await verificarNoticia(textoParaAnalise);
 
         // Análise local e cálculo do veredito final
-        const analiseLocal = analisarTextoLocalmente(texto.trim());
+        const analiseLocal = analisarTextoLocalmente(textoParaAnalise);
+        const dimensoes = analisarDimensoesNoticia(textoParaAnalise, analiseLocal, dadosAPI);
         const resultado = calcularVeredictoFinal(dadosAPI, analiseLocal);
         const veredito = obterRotuloVeredicto(resultado.porcentagem);
 
@@ -172,7 +189,7 @@ app.post('/api/verificar', autenticarOpcional, async (req, res) => {
         if (req.user) {
             await Verificacao.create({
                 userId:      req.user._id,
-                texto:       texto.trim().slice(0, 500),
+                texto:       entrada.slice(0, 500),
                 cidade:      cidade || '',
                 categoria:   categoria || '',
                 porcentagem: resultado.porcentagem,
@@ -191,7 +208,21 @@ app.post('/api/verificar', autenticarOpcional, async (req, res) => {
                 veredito,
                 explicacao,
                 fonte: resultado.fonte,
-                confianca: resultado.confianca
+                confianca: resultado.confianca,
+                analiseLocal: {
+                    alertasFalso: analiseLocal.alertasFalso,
+                    alertasConfiavel: analiseLocal.alertasConfiavel,
+                    pesoFalso: analiseLocal.pesoFalso,
+                    pesoConfiavel: analiseLocal.pesoConfiavel
+                },
+                dimensoes,
+                noticia: {
+                    url: noticia.url || '',
+                    titulo: noticia.titulo || '',
+                    descricao: noticia.descricao || '',
+                    conteudoObtido: noticia.conteudoObtido,
+                    erroConteudo: noticia.erroConteudo || undefined
+                }
             }
         });
 
@@ -240,7 +271,7 @@ app.get('/api/status', (req, res) => {
 
 // Fallback: serve index.html para páginas do SPA
 app.get('*', (req, res) => {
-    res.sendFile(path.join(__dirname, 'public', 'index.html'));
+    res.sendFile(path.join(__dirname, 'public', 'html', 'index.html'));
 });
 
 // ── Seed: fontes iniciais no banco (se vazio) ──────────────

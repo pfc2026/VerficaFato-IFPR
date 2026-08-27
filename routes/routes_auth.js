@@ -92,25 +92,35 @@ router.post('/entrar', async (req, res) => {
     }
 });
 
-// ── GET /api/auth/perfil ───────────────────────────────────
-router.get('/perfil', autenticarObrigatorio, async (req, res) => {
+// ── GET /api/auth/perfil  (também acessível como /me) ─────
+async function handlerPerfil(req, res) {
     try {
+        let totalVerificacoes = 0;
+        try {
+            const Verificacao = require('../models/Verificacao');
+            totalVerificacoes = await Verificacao.countDocuments({ userId: req.user._id });
+        } catch (_) { /* modelo pode não estar disponível */ }
+
         return res.json({
             sucesso: true,
             usuario: {
-                id:        req.user._id,
-                nome:      req.user.nome,
-                email:     req.user.email,
-                cidade:    req.user.cidade,
-                role:      req.user.role,
-                criadoEm:  req.user.createdAt
+                id:                 req.user._id,
+                nome:               req.user.nome,
+                email:              req.user.email,
+                cidade:             req.user.cidade,
+                role:               req.user.role,
+                createdAt:          req.user.createdAt,
+                totalVerificacoes
             }
         });
     } catch (err) {
         console.error('❌ /api/auth/perfil:', err.message);
         return res.status(500).json({ sucesso: false, erro: 'Erro ao buscar perfil.' });
     }
-});
+}
+
+router.get('/perfil', autenticarObrigatorio, handlerPerfil);
+router.get('/me',     autenticarObrigatorio, handlerPerfil);
 
 // ── PUT /api/auth/perfil ───────────────────────────────────
 router.put('/perfil', autenticarObrigatorio, async (req, res) => {

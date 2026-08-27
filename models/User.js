@@ -6,6 +6,7 @@ const UserSchema = new mongoose.Schema(
     email: { type: String, required: true, unique: true, trim: true, lowercase: true },
     senha: { type: String, required: true }, // hash bcrypt
     cidade: { type: String, default: '' },
+    fotoPerfil: { type: String, default: '' },
     role: { type: String, enum: ['user', 'admin'], default: 'user' },
     ativo: { type: Boolean, default: true }
   },

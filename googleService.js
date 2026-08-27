@@ -5,6 +5,47 @@ const API_KEY  = process.env.GOOGLE_API_KEY;
 const BASE_URL = 'https://factchecktools.googleapis.com';
 const ENDPOINT = '/v1alpha1/claims:search';
 
+async function obterConteudoDaUrl(url) {
+    let endereco;
+    try {
+        endereco = new URL(url);
+    } catch (_) {
+        throw new Error('O link informado não é uma URL válida.');
+    }
+    if (!['http:', 'https:'].includes(endereco.protocol)) {
+        throw new Error('O link deve começar com http:// ou https://.');
+    }
+
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), 8000);
+    try {
+        const response = await fetch(endereco.toString(), {
+            headers: { Accept: 'text/html,application/xhtml+xml', 'User-Agent': 'VerificaFato/1.0' },
+            signal: controller.signal,
+            size: 2 * 1024 * 1024
+        });
+        if (!response.ok) throw new Error(`A página respondeu com HTTP ${response.status}.`);
+
+        const html = (await response.text()).slice(0, 2 * 1024 * 1024);
+        const encontrar = regex => (html.match(regex)?.[1] || '').replace(/\s+/g, ' ').trim();
+        const titulo = encontrar(/<title[^>]*>([\s\S]*?)<\/title>/i) || encontrar(/<meta[^>]+property=["']og:title["'][^>]+content=["']([^"']+)/i);
+        const descricao = encontrar(/<meta[^>]+(?:name|property)=["'](?:description|og:description)["'][^>]+content=["']([^"']+)/i);
+        const corpo = html
+            .replace(/<script[\s\S]*?<\/script>|<style[\s\S]*?<\/style>|<nav[\s\S]*?<\/nav>|<footer[\s\S]*?<\/footer>/gi, ' ')
+            .replace(/<[^>]+>/g, ' ')
+            .replace(/&nbsp;/gi, ' ').replace(/&amp;/gi, '&').replace(/&quot;/gi, '"')
+            .replace(/&#39;|&apos;/gi, "'").replace(/\s+/g, ' ').trim();
+        const texto = [titulo, descricao, corpo].filter(Boolean).join('\n').slice(0, 18000);
+        if (texto.length < 20) throw new Error('Não foi possível extrair texto suficiente dessa página.');
+        return { url: endereco.toString(), titulo, descricao, texto, conteudoObtido: true };
+    } catch (error) {
+        if (error.name === 'AbortError') throw new Error('A página demorou demais para responder.');
+        throw error;
+    } finally {
+        clearTimeout(timer);
+    }
+}
+
 // ── Palavras irrelevantes para busca (stopwords em PT-BR) ─────────────────
 const STOPWORDS = new Set([
     'a','o','as','os','de','da','do','das','dos','em','no','na','nos','nas',
@@ -149,11 +190,20 @@ function formatarResultados(data) {
  * @returns {Promise<{ encontrados: boolean, quantidade: number, resultados: object[], estrategia: string }>}
  */
 async function verificarNoticia(texto) {
-    if (!API_KEY) {
-        throw new Error('GOOGLE_API_KEY não configurada. Verifique o arquivo .env');
-    }
     if (!texto || texto.trim().length === 0) {
         throw new Error('Texto não fornecido para verificação.');
+    }
+
+    if (!API_KEY) {
+        return {
+            encontrados: false,
+            quantidade: 0,
+            resultados: [],
+            estrategia: 'api não configurada',
+            palavrasChaveUsadas: '',
+            apiDisponivel: false,
+            erroAPI: 'GOOGLE_API_KEY não configurada. A análise local foi aplicada.'
+        };
     }
 
     const textoLimpo = texto.trim();
@@ -162,21 +212,37 @@ async function verificarNoticia(texto) {
     const palavrasChave = extrairPalavrasChave(textoLimpo, 8);
     console.log(`🔍 Fact Check API | tentativa 1 (palavras-chave): "${palavrasChave}"`);
 
-    let data = palavrasChave ? await buscarClaims(palavrasChave) : { claims: [] };
-    let resultados = formatarResultados(data);
+    let data;
+    let resultados = [];
     let estrategia = 'palavras-chave';
+    let erroAPI = '';
 
-    // ── Tentativa 2: se nada encontrado, tenta um trecho mais literal e curto ──
-    if (resultados.length === 0) {
-        const trechoLiteral = textoLimpo.slice(0, 120);
-        console.log(`🔍 Fact Check API | tentativa 2 (trecho literal): "${trechoLiteral}"`);
-        data = await buscarClaims(trechoLiteral);
+    try {
+        data = palavrasChave ? await buscarClaims(palavrasChave) : { claims: [] };
         resultados = formatarResultados(data);
-        estrategia = 'trecho literal';
+    } catch (error) {
+        erroAPI = error.message;
+        console.error(`❌ Fact Check API | tentativa 1: ${erroAPI}`);
     }
 
-    if (resultados.length === 0) {
+    // ── Tentativa 2: se nada encontrado, tenta um trecho mais literal e curto ──
+    if (resultados.length === 0 && !erroAPI) {
+        const trechoLiteral = textoLimpo.slice(0, 120);
+        console.log(`🔍 Fact Check API | tentativa 2 (trecho literal): "${trechoLiteral}"`);
+        try {
+            data = await buscarClaims(trechoLiteral);
+            resultados = formatarResultados(data);
+            estrategia = 'trecho literal';
+        } catch (error) {
+            erroAPI = error.message;
+            console.error(`❌ Fact Check API | tentativa 2: ${erroAPI}`);
+        }
+    }
+
+    if (resultados.length === 0 && !erroAPI) {
         estrategia = 'nenhuma correspondência';
+    } else if (erroAPI) {
+        estrategia = 'api indisponível';
     }
 
     console.log(`✅ Fact Check API | ${resultados.length} resultado(s) | estratégia: ${estrategia}`);
@@ -186,8 +252,10 @@ async function verificarNoticia(texto) {
         quantidade:   resultados.length,
         resultados,
         estrategia,
-        palavrasChaveUsadas: palavrasChave
+        palavrasChaveUsadas: palavrasChave,
+        apiDisponivel: !erroAPI,
+        erroAPI: erroAPI || undefined
     };
 }
 
-module.exports = { verificarNoticia, extrairPalavrasChave };
+module.exports = { verificarNoticia, extrairPalavrasChave, obterConteudoDaUrl };

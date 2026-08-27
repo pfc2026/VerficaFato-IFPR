@@ -150,7 +150,7 @@ function analisarTextoLocalmente(texto) {
     } else {
         const rawScore = (pesoConfiavel / (pesoFalso + pesoConfiavel)) * 100;
         // Comprime a escala para não soar overconfident: 8 a 92
-        porcentagemLocal = Math.round(Math.max(8, Math.min(92, rawScore)));
+        porcentagemLocal = Math.round(Math.max(8, Math.min(74, rawScore)));
     }
 
     return {
@@ -236,6 +236,12 @@ function agruparPorCategoria(alertas) {
     return grupos;
 }
 
+function escaparHtml(valor) {
+    return String(valor ?? '').replace(/[&<>'"]/g, caractere => ({
+        '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;'
+    }[caractere]));
+}
+
 // ── Renderiza o modal ─────────────────────────────────────
 function renderResults(data, texto, cidade, categoria) {
     const cityLabel = cidade || null;
@@ -253,12 +259,16 @@ function renderResults(data, texto, cidade, categoria) {
         média: { cor: '#F39C12', label: 'Confiança média', desc: 'Baseado em uma verificação profissional ou em vários padrões textuais.' },
         baixa: { cor: '#E67E22', label: 'Confiança baixa', desc: 'Estimativa automática, sem verificação humana disponível.' }
     }[data.confianca || 'baixa'];
+    const dimensoes = data.dimensoes || {};
 
     // ── Cabeçalho de badges ───────────────────────────────
     let html = `<div class="mb-3 d-flex align-items-center gap-2 flex-wrap">`;
     if (data.encontrados) {
         html += `<span class="badge bg-success fs-6"><i class="fas fa-check-circle me-1"></i>Verificada pela API</span>
                  <span class="badge bg-secondary">${data.quantidade} resultado(s)</span>`;
+    } else if (data.apiDisponivel === false) {
+        html += `<span class="badge bg-warning text-dark fs-6"><i class="fas fa-cloud-slash me-1"></i>Google indisponível</span>
+                 <span class="badge bg-secondary">Análise local aplicada</span>`;
     } else {
         html += `<span class="badge bg-warning text-dark fs-6"><i class="fas fa-magnifying-glass me-1"></i>Análise local aplicada</span>`;
     }
@@ -339,6 +349,74 @@ function renderResults(data, texto, cidade, categoria) {
             </div>
         </div>
     </div>`;
+
+    if (dimensoes.sensacionalismo || dimensoes.fonte || dimensoes.estrutura) {
+        const dimensaoCard = (icone, titulo, item, cor) => item ? `
+            <div class="col-12 col-md-4">
+                <div class="analysis-card h-100">
+                    <div class="d-flex justify-content-between align-items-center gap-2 mb-2">
+                        <span class="analysis-card-title"><i class="fas ${icone} me-2" style="color:${cor}"></i>${titulo}</span>
+                        <strong style="color:${cor}">${item.pontuacao}/100</strong>
+                    </div>
+                    <div class="progress analysis-progress mb-2" role="progressbar" aria-label="${titulo}" aria-valuenow="${item.pontuacao}" aria-valuemin="0" aria-valuemax="100">
+                        <div class="progress-bar" style="width:${item.pontuacao}%;background:${cor}"></div>
+                    </div>
+                    <span class="analysis-level">${item.nivel || ''}</span>
+                    <small>${item.descricao || ''}</small>
+                </div>
+            </div>` : '';
+
+        html += `<section class="analysis-overview mb-3" aria-labelledby="analysisTitle">
+            <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
+                <h6 id="analysisTitle" class="mb-0"><i class="fas fa-chart-simple me-2"></i>Leitura detalhada da notícia</h6>
+                <small class="analysis-disclaimer">Indicadores automáticos, não prova definitiva</small>
+            </div>
+            <div class="row g-2">
+                ${dimensaoCard('fa-bullhorn', 'Sensacionalismo', dimensoes.sensacionalismo, '#E67E22')}
+                ${dimensaoCard('fa-link', 'Qualidade da fonte', dimensoes.fonte, '#27AE60')}
+                ${dimensaoCard('fa-file-lines', 'Completude do texto', dimensoes.estrutura, '#3498DB')}
+            </div>
+            ${dimensoes.evidencia ? `<div class="analysis-evidence mt-2"><i class="fas fa-shield-halved me-2"></i>Evidência usada: <strong>${dimensoes.evidencia.tipo}</strong>${dimensoes.evidencia.quantidade ? ` (${dimensoes.evidencia.quantidade} resultado(s))` : ''}</div>` : ''}
+        </section>`;
+    }
+
+    const informacoes = dimensoes.informacoes;
+    if (informacoes) {
+        const listaInformacao = (icone, titulo, itens, vazio = 'Não identificado') => `
+            <div class="news-info-group">
+                <strong><i class="fas ${icone} me-2"></i>${titulo}</strong>
+            <div class="news-info-values">${itens?.length ? itens.map(item => `<span>${escaparHtml(item)}</span>`).join('') : `<em>${vazio}</em>`}</div>
+            </div>`;
+        html += `<section class="news-information mb-3" aria-labelledby="newsInfoTitle">
+            <h6 id="newsInfoTitle" class="mb-3"><i class="fas fa-circle-info me-2"></i>Informações extraídas do texto</h6>
+            <div class="news-claim"><span>Alegação principal</span><p>${escaparHtml(informacoes.alegacaoPrincipal || 'Não identificada')}</p></div>
+            <div class="news-info-grid">
+                ${listaInformacao('fa-key', 'Palavras importantes', informacoes.palavrasImportantes)}
+                ${listaInformacao('fa-user-tag', 'Nomes e entidades', informacoes.entidades)}
+                ${listaInformacao('fa-hashtag', 'Números e valores', informacoes.numeros)}
+                ${listaInformacao('fa-calendar-days', 'Datas', informacoes.datas)}
+            </div>
+            ${informacoes.links?.length ? `<div class="news-links mt-3"><strong><i class="fas fa-link me-2"></i>Links encontrados</strong>${informacoes.links.map(link => `<a href="${escaparHtml(link)}" target="_blank" rel="noopener noreferrer">${escaparHtml(link)}</a>`).join('')}</div>` : ''}
+        </section>`;
+    }
+
+    if (data.noticia?.url) {
+        html += `<section class="article-source mb-3" aria-labelledby="sourceTitle">
+            <div class="d-flex gap-2 align-items-start">
+                <i class="fas fa-newspaper mt-1" style="color:#74b9ff"></i>
+                <div class="flex-grow-1 min-width-0">
+                    <h6 id="sourceTitle" class="mb-1">Fonte enviada</h6>
+                    ${data.noticia.titulo ? `<strong class="article-source-title">${escaparHtml(data.noticia.titulo)}</strong>` : ''}
+                    ${data.noticia.descricao ? `<p class="article-source-description mb-2">${escaparHtml(data.noticia.descricao)}</p>` : ''}
+                    <a class="article-source-url" href="${escaparHtml(data.noticia.url)}" target="_blank" rel="noopener noreferrer">${escaparHtml(data.noticia.url)}</a>
+                    <small class="d-block mt-2 ${data.noticia.conteudoObtido ? 'text-success' : 'text-warning'}">
+                        <i class="fas ${data.noticia.conteudoObtido ? 'fa-circle-check' : 'fa-triangle-exclamation'} me-1"></i>
+                        ${data.noticia.conteudoObtido ? 'Título e conteúdo da página foram analisados.' : `O conteúdo da página não foi lido. ${data.noticia.erroConteudo || 'A análise usou o link informado.'}`}
+                    </small>
+                </div>
+            </div>
+        </section>`;
+    }
 
     // ── Sinais encontrados (agrupados por categoria) ──────
     if (analiseLocal.alertasFalso.length > 0 || analiseLocal.alertasConfiavel.length > 0) {
@@ -425,6 +503,17 @@ function renderResults(data, texto, cidade, categoria) {
                 </div>
             </div>`;
         });
+    } else if (data.apiDisponivel === false) {
+        html += `
+        <div class="p-3 mb-3" style="background:rgba(231,76,60,0.1);border:1px solid rgba(231,76,60,0.3);border-radius:12px">
+            <div class="d-flex gap-2 align-items-start">
+                <i class="fas fa-cloud-slash mt-1" style="color:#E74C3C"></i>
+                <div>
+                    <strong>A consulta ao Google Fact Check não pôde ser concluída</strong><br>
+                    <small style="opacity:0.8">${data.erroAPI || 'Verifique a configuração da API.'} O resultado acima foi calculado pela análise local e não substitui uma checagem humana.</small>
+                </div>
+            </div>
+        </div>`;
     } else {
         html += `
         <div class="p-3 mb-3" style="background:rgba(243,156,18,0.1);border:1px solid rgba(243,156,18,0.3);border-radius:12px">
@@ -499,21 +588,11 @@ function renderResults(data, texto, cidade, categoria) {
 const verificationForm = document.getElementById('verificationForm');
 const newsTextEl       = document.getElementById('newsText');
 const newsLinkEl       = document.getElementById('newsLink');
-const citySelectEl     = document.getElementById('citySelect');
-const categorySelectEl = document.getElementById('categorySelect');
 const charCounterEl    = document.getElementById('charCounter');
 const submitBtn        = document.getElementById('submitBtn');
 const btnTextEl        = submitBtn.querySelector('.btn-text');
 const spinnerEl        = submitBtn.querySelector('.loading-spinner');
 const shareBtnEl       = document.getElementById('shareBtn');
-
-// Preenche cidades
-WESTERN_CITIES.sort().forEach(city => {
-    const opt = document.createElement('option');
-    opt.value = city.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/\s+/g,'-');
-    opt.textContent = city;
-    citySelectEl.appendChild(opt);
-});
 
 // Contador de caracteres
 newsTextEl.addEventListener('input', () => {
@@ -546,10 +625,9 @@ verificationForm.addEventListener('submit', async (e) => {
     e.preventDefault();
     const texto    = newsTextEl.value.trim();
     const link     = newsLinkEl.value.trim();
-    const cidade   = citySelectEl.value;
-    const categoria = categorySelectEl.value;
 
     if (!texto && !link) { showAlert('Preencha o texto ou cole um link.', 'warning'); return; }
+    if (texto && link) { showAlert('Preencha apenas uma área: texto ou link da notícia.', 'warning'); return; }
     if (texto && texto.length < 10) { showAlert('Texto muito curto (mínimo 10 caracteres).', 'warning'); return; }
 
     setLoading(true);
@@ -563,15 +641,13 @@ verificationForm.addEventListener('submit', async (e) => {
         const res  = await fetch(`${API_BASE}/api/verificar`, {
             method: 'POST',
             headers,
-            body: JSON.stringify({ texto: texto || link, cidade, categoria })
+            body: JSON.stringify({ texto, link })
         });
         const data = await res.json();
         if (!res.ok || !data.sucesso) throw new Error(data.erro || `Erro ${res.status}`);
 
-        const cityLabel = citySelectEl.value ? citySelectEl.options[citySelectEl.selectedIndex]?.text : '';
-        const categoryLabel = categorySelectEl.value ? categorySelectEl.options[categorySelectEl.selectedIndex]?.text : '';
         document.getElementById('modalContent').innerHTML =
-            renderResults(data.dados, texto || link, cityLabel, categoryLabel);
+            renderResults(data.dados, texto || link, '', '');
 
         bootstrap.Modal.getOrCreateInstance(document.getElementById('resultsModal')).show();
     } catch (err) {
@@ -605,16 +681,16 @@ function atualizarNav() {
     `;
 
     if (token && user) {
-        html += `<a href="/Historico.html" class="nav-link">Histórico</a>`;
+        html += `<a href="/html/Historico.html" class="nav-link">Histórico</a>`;
         if (user.role === 'admin') {
-            html += `<a href="/Admin.html" class="nav-link fw-bold text-warning">Painel Admin</a>`;
+            html += `<a href="/html/Admin.html" class="nav-link fw-bold text-warning">Painel Admin</a>`;
         }
         html += `
             <a href="#" id="profileBtn" class="nav-link text-success fw-semibold" style="margin-left: 10px;"><i class="fas fa-user-circle me-1"></i>Minha Conta</a>
             <a href="#" id="logoutBtn" class="nav-link text-danger"><i class="fas fa-sign-out-alt"></i> Sair</a>
         `;
     } else {
-        html += `<a href="/Login.html" class="nav-link fw-bold text-success"><i class="fas fa-sign-in-alt me-1"></i> Entrar</a>`;
+        html += `<a href="/html/Login.html" class="nav-link fw-bold text-success"><i class="fas fa-sign-in-alt me-1"></i> Entrar</a>`;
     }
 
     nav.innerHTML = html;
@@ -638,6 +714,72 @@ function atualizarNav() {
             mostrarModalPerfil();
         });
     }
+}
+
+function abrirModalAcaoConta(acao, usuario) {
+    const id = 'accountActionModal';
+    document.getElementById(id)?.remove();
+    const senha = acao === 'senha';
+    const conteudo = senha ? `
+        <form id="accountActionForm">
+            <label for="accountCurrentPassword">Senha atual</label>
+            <input id="accountCurrentPassword" class="form-control" type="password" autocomplete="current-password" required>
+            <label for="accountNewPassword">Nova senha</label>
+            <input id="accountNewPassword" class="form-control" type="password" minlength="6" autocomplete="new-password" required>
+            <label for="accountConfirmPassword">Confirmar nova senha</label>
+            <input id="accountConfirmPassword" class="form-control" type="password" minlength="6" autocomplete="new-password" required>
+            <button class="btn btn-verify w-100 mt-3" type="submit"><i class="fas fa-key me-2"></i>Salvar nova senha</button>
+        </form>` : `
+        <form id="accountActionForm">
+            <label for="accountNewEmail">Novo e-mail</label>
+            <input id="accountNewEmail" class="form-control" type="email" value="${escaparHtml(usuario.email)}" autocomplete="email" required>
+            <label for="accountEmailPassword">Senha atual</label>
+            <input id="accountEmailPassword" class="form-control" type="password" autocomplete="current-password" required>
+            <small class="account-help">Você usará este e-mail no próximo acesso.</small>
+            <button class="btn btn-verify w-100 mt-3" type="submit"><i class="fas fa-envelope me-2"></i>Salvar novo e-mail</button>
+        </form>`;
+    document.body.insertAdjacentHTML('beforeend', `
+        <div class="modal fade" id="${id}" tabindex="-1" aria-labelledby="accountActionTitle" aria-hidden="true">
+            <div class="modal-dialog modal-dialog-centered modal-sm">
+                <div class="modal-content glass-card account-action-modal">
+                    <div class="modal-header border-0">
+                        <h5 class="modal-title" id="accountActionTitle"><i class="fas ${senha ? 'fa-lock' : 'fa-envelope'} me-2"></i>${senha ? 'Mudar senha' : 'Mudar e-mail'}</h5>
+                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Fechar"></button>
+                    </div>
+                    <div class="modal-body">${conteudo}<div id="accountActionMessage" class="account-message" role="status"></div></div>
+                </div>
+            </div>
+        </div>`);
+    const modalEl = document.getElementById(id);
+    bootstrap.Modal.getOrCreateInstance(document.getElementById('profileModal')).hide();
+    bootstrap.Modal.getOrCreateInstance(modalEl).show();
+    const form = document.getElementById('accountActionForm');
+    form.addEventListener('submit', async event => {
+        event.preventDefault();
+        const payload = senha
+            ? { senhaAtual: document.getElementById('accountCurrentPassword').value, novaSenha: document.getElementById('accountNewPassword').value }
+            : { email: document.getElementById('accountNewEmail').value.trim(), senhaAtual: document.getElementById('accountEmailPassword').value };
+        if (senha && payload.novaSenha !== document.getElementById('accountConfirmPassword').value) {
+            document.getElementById('accountActionMessage').textContent = 'As novas senhas não coincidem.';
+            document.getElementById('accountActionMessage').className = 'account-message error';
+            return;
+        }
+        try {
+            const response = await fetch(`${API_BASE}/api/auth/${senha ? 'senha' : 'perfil'}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${localStorage.getItem('vf-token')}` }, body: JSON.stringify(payload) });
+            const result = await response.json();
+            if (!response.ok || !result.sucesso) throw new Error(result.erro || 'Não foi possível salvar.');
+            if (!senha) {
+                localStorage.setItem('vf-user', JSON.stringify(result.usuario));
+                atualizarNav();
+            }
+            document.getElementById('accountActionMessage').textContent = result.mensagem;
+            document.getElementById('accountActionMessage').className = 'account-message success';
+            form.reset();
+        } catch (error) {
+            document.getElementById('accountActionMessage').textContent = error.message;
+            document.getElementById('accountActionMessage').className = 'account-message error';
+        }
+    });
 }
 
 // ── Modal de Perfil/Conta Dinâmico ────────────────────────
@@ -675,7 +817,7 @@ function mostrarModalPerfil() {
     modal.show();
 
     const token = localStorage.getItem('vf-token');
-    fetch(`${API_BASE}/api/auth/me`, {
+    fetch(`${API_BASE}/api/auth/perfil`, {
         headers: {
             'Authorization': `Bearer ${token}`
         }
@@ -689,37 +831,37 @@ function mostrarModalPerfil() {
             const cityDisplay = u.cidade ? u.cidade : 'Não informada';
             
             const bodyEl = document.getElementById('profileModalBody');
+            const avatar = u.fotoPerfil
+                ? `<img class="profile-avatar-image" src="${escaparHtml(u.fotoPerfil)}" alt="Foto de ${escaparHtml(u.nome)}">`
+                : `<span>${escaparHtml(u.nome.charAt(0).toUpperCase())}</span>`;
             bodyEl.innerHTML = `
-                <div class="text-center mb-4">
-                    <div class="avatar-circle mx-auto mb-3" style="width: 80px; height: 80px; border-radius: 50%; background: linear-gradient(135deg, #27AE60, #11998e); display: flex; align-items: center; justify-content: center; color: white; font-size: 2.2rem; font-weight: bold; box-shadow: 0 4px 15px rgba(39,174,96,0.3)">
-                        ${u.nome.charAt(0).toUpperCase()}
-                    </div>
-                    <h4 class="mb-1" style="color:var(--text-main,#fff); font-weight:700;">${u.nome}</h4>
-                    <span class="badge ${u.role === 'admin' ? 'bg-warning text-dark' : 'bg-success'}" style="font-size: 0.8rem; padding: 0.4em 0.8em; border-radius: 8px;">
+                <div class="profile-identity text-center mb-4">
+                    <div class="avatar-circle mx-auto mb-3">${avatar}</div>
+                    <h4 class="mb-1 profile-name">${escaparHtml(u.nome)}</h4>
+                    <p class="profile-email mb-0">${escaparHtml(u.email)}</p>
+                    <span class="badge mt-2 ${u.role === 'admin' ? 'bg-warning text-dark' : 'bg-success'}">
                         <i class="fas ${u.role === 'admin' ? 'fa-user-shield' : 'fa-user'} me-1"></i>
                         ${u.role === 'admin' ? 'Administrador' : 'Leitor / Usuário'}
                     </span>
                 </div>
-                
-                <div class="profile-details-list" style="background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.06); border-radius: 14px; padding: 1.25rem; text-align: left;">
-                    <div class="mb-3 d-flex justify-content-between align-items-center" style="border-bottom: 1px solid rgba(255,255,255,0.05); padding-bottom: 8px;">
-                        <span class="text-muted small"><i class="fas fa-envelope me-2"></i>E-mail</span>
-                        <strong style="color:var(--text-main,#fff); font-size:0.9rem;">${u.email}</strong>
-                    </div>
-                    <div class="mb-3 d-flex justify-content-between align-items-center" style="border-bottom: 1px solid rgba(255,255,255,0.05); padding-bottom: 8px;">
-                        <span class="text-muted small"><i class="fas fa-map-marker-alt me-2"></i>Cidade</span>
-                        <strong style="color:var(--text-main,#fff); font-size:0.9rem;">${cityDisplay}</strong>
-                    </div>
-                    <div class="mb-3 d-flex justify-content-between align-items-center" style="border-bottom: 1px solid rgba(255,255,255,0.05); padding-bottom: 8px;">
-                        <span class="text-muted small"><i class="fas fa-calendar-alt me-2"></i>Membro desde</span>
-                        <strong style="color:var(--text-main,#fff); font-size:0.9rem;">${dataCriacao}</strong>
-                    </div>
-                    <div class="d-flex justify-content-between align-items-center">
-                        <span class="text-muted small"><i class="fas fa-check-double me-2"></i>Verificações enviadas</span>
-                        <span class="badge bg-primary" style="font-size:0.9rem; padding: 0.35em 0.7em; font-weight:700;">${totalChecagens}</span>
-                    </div>
+                <div class="profile-actions">
+                    <button type="button" class="account-action-btn" data-account-action="email">
+                        <i class="fas fa-envelope"></i><span><strong>Mudar e-mail</strong><small>Atualize o Gmail da conta</small></span><i class="fas fa-chevron-right"></i>
+                    </button>
+                    <button type="button" class="account-action-btn" data-account-action="senha">
+                        <i class="fas fa-lock"></i><span><strong>Mudar senha</strong><small>Proteja sua conta com uma nova senha</small></span><i class="fas fa-chevron-right"></i>
+                    </button>
+                </div>
+                <div class="profile-details-list mt-4">
+                    <div><span><i class="fas fa-envelope me-2"></i>E-mail</span><strong>${escaparHtml(u.email)}</strong></div>
+                    <div><span><i class="fas fa-map-marker-alt me-2"></i>Cidade</span><strong>${escaparHtml(cityDisplay)}</strong></div>
+                    <div><span><i class="fas fa-calendar-alt me-2"></i>Membro desde</span><strong>${dataCriacao}</strong></div>
+                    <div><span><i class="fas fa-check-double me-2"></i>Verificações enviadas</span><strong>${totalChecagens}</strong></div>
                 </div>
             `;
+            bodyEl.querySelectorAll('[data-account-action]').forEach(button => {
+                button.addEventListener('click', () => abrirModalAcaoConta(button.dataset.accountAction, u));
+            });
         } else {
             document.getElementById('profileModalBody').innerHTML = `
                 <div class="alert alert-danger mb-0">

@@ -45,16 +45,16 @@ function atualizarNav() {
   `;
 
   if (token && user) {
-    html += `<a href="/Historico.html" class="nav-link">Histórico</a>`;
+    html += `<a href="/html/Historico.html" class="nav-link">Histórico</a>`;
     if (user.role === 'admin') {
-      html += `<a href="/Admin.html" class="nav-link active fw-bold text-warning">Painel Admin</a>`;
+      html += `<a href="/html/Admin.html" class="nav-link active fw-bold text-warning">Painel Admin</a>`;
     }
     html += `
       <a href="#" id="profileBtn" class="nav-link text-success fw-semibold" style="margin-left: 10px;"><i class="fas fa-user-circle me-1"></i>Minha Conta</a>
       <a href="#" id="logoutBtn" class="nav-link text-danger"><i class="fas fa-sign-out-alt"></i> Sair</a>
     `;
   } else {
-    html += `<a href="/Login.html" class="nav-link fw-bold text-success"><i class="fas fa-sign-in-alt me-1"></i> Entrar</a>`;
+    html += `<a href="/html/Login.html" class="nav-link fw-bold text-success"><i class="fas fa-sign-in-alt me-1"></i> Entrar</a>`;
   }
 
   nav.innerHTML = html;
@@ -722,7 +722,7 @@ function analisarTextoLocalmente(texto) {
         porcentagemLocal = 50;
     } else {
         const rawScore = (pesoConfiavel / (pesoFalso + pesoConfiavel)) * 100;
-        porcentagemLocal = Math.round(Math.max(8, Math.min(92, rawScore)));
+        porcentagemLocal = Math.round(Math.max(8, Math.min(74, rawScore)));
     }
 
     return {
