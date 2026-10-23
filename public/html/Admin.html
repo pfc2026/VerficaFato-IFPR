@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Painel Administrativo — VerificaFato</title>
-  <link rel="icon" type="image/png" href="img/Logo%20oficial.png">
+  <link rel="icon" type="image/png" href="/html/img/Logo%20oficial.png">
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
   <link rel="stylesheet" href="/css/style.css">
@@ -143,11 +143,11 @@
 
       <!-- Menu de Abas -->
       <div class="nav-tabs-admin" role="tablist">
-        <button class="tab-admin-btn active" onclick="switchTab('resumo')"><i class="fas fa-chart-line me-1"></i> Resumo</button>
-        <button class="tab-admin-btn" onclick="switchTab('fontes')"><i class="fas fa-globe me-1"></i> Fontes</button>
-        <button class="tab-admin-btn" onclick="switchTab('licoes')"><i class="fas fa-book-open me-1"></i> Lições</button>
-        <button class="tab-admin-btn" onclick="switchTab('usuarios')"><i class="fas fa-users me-1"></i> Usuários</button>
-        <button class="tab-admin-btn" onclick="switchTab('verificacoes')"><i class="fas fa-clipboard-list me-1"></i> Histórico Global</button>
+        <button class="tab-admin-btn active" data-admin-tab="resumo"><i class="fas fa-chart-line me-1"></i> Resumo</button>
+        <button class="tab-admin-btn" data-admin-tab="fontes"><i class="fas fa-globe me-1"></i> Fontes</button>
+        <button class="tab-admin-btn" data-admin-tab="licoes"><i class="fas fa-book-open me-1"></i> Lições</button>
+        <button class="tab-admin-btn" data-admin-tab="usuarios"><i class="fas fa-users me-1"></i> Usuários</button>
+        <button class="tab-admin-btn" data-admin-tab="verificacoes"><i class="fas fa-clipboard-list me-1"></i> Histórico Global</button>
       </div>
 
       <!-- ── PAINEL: RESUMO ── -->
@@ -203,7 +203,7 @@
       <div id="panel-fontes" class="panel-admin">
         <div class="d-flex justify-content-between align-items-center mb-3">
           <h2 class="h5 m-0">Fontes Regionais Cadastradas</h2>
-          <button class="btn btn-verify btn-sm" onclick="abrirModalFonte()"><i class="fas fa-plus me-1"></i> Nova Fonte</button>
+          <button class="btn btn-verify btn-sm" data-admin-action="fonte"><i class="fas fa-plus me-1"></i> Nova Fonte</button>
         </div>
         <div class="table-responsive">
           <table class="glass-table">
@@ -229,7 +229,7 @@
       <div id="panel-licoes" class="panel-admin">
         <div class="d-flex justify-content-between align-items-center mb-3">
           <h2 class="h5 m-0">Lições de Educação Midiática</h2>
-          <button class="btn btn-verify btn-sm" onclick="abrirModalLicao()"><i class="fas fa-plus me-1"></i> Criar Lição</button>
+          <button class="btn btn-verify btn-sm" data-admin-action="licao"><i class="fas fa-plus me-1"></i> Criar Lição</button>
         </div>
         <div class="table-responsive">
           <table class="glass-table">
@@ -309,7 +309,7 @@
           <h5 class="modal-title" id="modalFonteTitle">Adicionar Fonte</h5>
           <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
         </div>
-        <form id="formFonte" onsubmit="salvarFonte(event)">
+        <form id="formFonte">
           <input type="hidden" id="fonte-id">
           <div class="modal-body">
             <div class="mb-3">
@@ -350,7 +350,7 @@
           <h5 class="modal-title" id="modalLicaoTitle">Criar Lição Educativa</h5>
           <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
         </div>
-        <form id="formLicao" onsubmit="salvarLicao(event)">
+        <form id="formLicao">
           <input type="hidden" id="licao-id">
           <div class="modal-body">
             <div class="row g-2">
@@ -440,6 +440,6 @@
 
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
   <script src="/js/dark-mode.js"></script>
-  <script src="/js/Admin.js"></script>
+  <script type="module" src="/js/Admin.js"></script>
 </body>
 </html>

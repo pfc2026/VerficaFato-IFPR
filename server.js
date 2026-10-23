@@ -1,280 +1,122 @@
-require('dotenv').config();
-const express   = require('express');
-const path      = require('path');
-const mongoose  = require('mongoose');
-const { verificarNoticia, obterConteudoDaUrl }  = require('./googleService');
+import 'dotenv/config';
+import express from 'express';
+import path from 'node:path';
+import { fileURLToPath, pathToFileURL } from 'node:url';
+import mongoose from 'mongoose';
+import helmet from 'helmet';
+import { rateLimit } from 'express-rate-limit';
+import { z } from 'zod';
+import { analisarConteudo } from './services/analysis.js';
+import { HttpError } from './services/errors.js';
+import { requestMetrics } from './middleware/metrics.js';
+import { autenticarOpcional, getSigningSecret } from './middleware/auth.js';
+import { textField, httpUrl, validate } from './middleware/validation.js';
+import authRoutes from './routes/auth.js';
+import adminRoutes, { sanitizeLesson } from './routes/admin.js';
+import historyRoutes from './routes/historico.js';
+import Fonte from './models/Fonte.js';
+import ConteudoEdu from './models/ConteudoEdu.js';
+import Verificacao from './models/Verificacao.js';
+import NoticiaColetada from './models/NoticiaColetada.js';
 
-let autenticarOpcional = async (req, res, next) => {
-    // fallback pass-through (não quebra deploy/boot)
-    req.user = null;
-    next();
-};
-
-try {
-    ({ autenticarOpcional } = require('./middleware/auth'));
-} catch (e) {
-    console.warn('⚠️ Falha ao carregar ../middleware/auth. Usando fallback no middleware opcional. Detalhe:', e.message);
+const directory = path.dirname(fileURLToPath(import.meta.url));
+mongoose.set('bufferCommands', false);
+mongoose.set('maxTimeMS', 2500);
+let databaseConnection;
+export async function connectDatabase({ seed = false } = {}) {
+  if (mongoose.connection.readyState === 1) return true;
+  if (!process.env.MONGO_URI) return false;
+  if (!databaseConnection) {
+    databaseConnection = mongoose.connect(process.env.MONGO_URI, { serverSelectionTimeoutMS: 2500, connectTimeoutMS: 2500 })
+      .then(async () => {
+        if (seed) await Promise.all([seedFontesIniciais(), seedLicoesIniciais()]);
+        return true;
+      }).catch(() => false).finally(() => { databaseConnection = null; });
+  }
+  return databaseConnection;
 }
+const inputSchema = z.object({
+  texto: z.string().trim().max(20000).optional(), link: z.union([z.literal(''), httpUrl]).optional(),
+  cidade: textField().optional(), categoria: textField().optional()
+}).strict().refine(value => Boolean(value.texto) !== Boolean(value.link), 'Envie somente texto ou link.').refine(value => !value.texto || value.texto.length >= 10, 'Forneça pelo menos 10 caracteres.');
 
-let Verificacao;
-try {
-    Verificacao = require('./models/Verificacao');
-} catch (e) {
-    console.warn('⚠️ Falha ao carregar ../models/Verificacao. Desabilitando persistência de histórico. Detalhe:', e.message);
-    Verificacao = null;
-}
-
-const Fonte       = require('./models/Fonte');
-const ConteudoEdu = require('./models/ConteudoEdu');
-
-const {
-    analisarTextoLocalmente,
-    analisarDimensoesNoticia,
-    calcularVeredictoFinal,
-    obterRotuloVeredicto
-} = require('./verificationEngine');
-
-const app = express();
-
-// ── MongoDB ────────────────────────────────────────────────
-const MONGO_URI = process.env.MONGO_URI;
-
-if (!MONGO_URI) {
-    console.error('❌ MONGO_URI não configurada nas variáveis de ambiente.');
-}
-
-mongoose.connect(MONGO_URI)
-    .then(async () => {
-        console.log('✅ MongoDB conectado');
-        await seedFontesIniciais();
-        await seedLicoesIniciais();
-    })
-    .catch(err => console.error('❌ MongoDB:', err.message));
-
-// ── Middlewares ────────────────────────────────────────────
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
-app.use(express.static(path.join(__dirname, 'public')));
-
-app.use((req, res, next) => {
-    res.header('Access-Control-Allow-Origin', '*');
-    res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization');
-    res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
-    if (req.method === 'OPTIONS') return res.sendStatus(200);
-    next();
-});
-
-// ── Rotas de módulos ───────────────────────────────────────
-app.use('/api/auth',      require('./routes/auth'));
-app.use('/api/admin',     require('./routes/admin'));
-app.use('/api/historico', require('./routes/historico'));
-
-// ── Gerador de Explicação Textual ──────────────────────────
-/**
- * Gera um texto em português explicando POR QUE a notícia foi
- * classificada como verdadeira, suspeita ou falsa, com base nos
- * sinais detectados localmente e no resultado da API de fact-check.
- */
-function gerarExplicacao(resultado) {
-    const { porcentagem, veredito, alertasFalso = [], alertasConfiavel = [], dadosAPI, fonte } = resultado;
-
-    const linhas = [];
-
-    // Parágrafo de abertura baseado no veredito
-    const aberturas = {
-        'Provavelmente Falsa':      `O conteúdo analisado apresenta características fortemente associadas a desinformação.`,
-        'Tende a ser falsa':        `O conteúdo analisado reúne vários sinais de alerta que indicam possível desinformação.`,
-        'Inconclusivo / Verificar': `A análise não encontrou evidências suficientes para confirmar ou desmentir o conteúdo.`,
-        'Tende a ser verdadeira':   `O conteúdo analisado apresenta características compatíveis com informação confiável.`,
-        'Provavelmente Verdadeira': `O conteúdo analisado apresenta múltiplos indicadores de credibilidade e veracidade.`
-    };
-    linhas.push(aberturas[veredito] || `A análise atribuiu ao conteúdo uma pontuação de ${porcentagem}% de veracidade.`);
-
-    // Menciona resultado da API se houver
-    if (fonte === 'api' && dadosAPI?.resultados?.length > 0) {
-        const r = dadosAPI.resultados[0];
-        linhas.push(
-            `Este conteúdo foi verificado por "${r.verificador}" em ${r.data_verificacao}, ` +
-            `que classificou a alegação como "${r.avaliacao}". ` +
-            `A checagem original pode ser lida em: ${r.url_verificacao}`
-        );
-    } else if (fonte === 'api') {
-        linhas.push('A consulta a bancos de dados de fact-checking não retornou correspondências para este conteúdo, o que indica que o tema ainda não foi verificado por agências especializadas.');
+export function createApp({ analyze = analisarConteudo, dbReady = () => mongoose.connection.readyState === 1, rateLimits = true } = {}) {
+  const app = express();
+  app.disable('x-powered-by');
+  app.use(requestMetrics);
+  if (process.env.TRUST_PROXY === '1' || process.env.VERCEL === '1') app.set('trust proxy', 1);
+  app.use(helmet({ contentSecurityPolicy: { directives: {
+    defaultSrc: ["'self'"], scriptSrc: ["'self'", 'https://cdn.jsdelivr.net'], styleSrc: ["'self'", 'https://cdn.jsdelivr.net', 'https://cdnjs.cloudflare.com', "'unsafe-inline'"],
+    imgSrc: ["'self'", 'data:', 'https:', 'http:'], fontSrc: ["'self'", 'https://cdnjs.cloudflare.com', 'data:'], connectSrc: ["'self'"],
+    objectSrc: ["'none'"], frameAncestors: ["'none'"], upgradeInsecureRequests: null
+  } }, crossOriginEmbedderPolicy: false, strictTransportSecurity: process.env.NODE_ENV === 'production' ? undefined : false }));
+  app.use((req, res, next) => {
+    const origin = req.headers.origin;
+    const allowed = (process.env.APP_ORIGINS || '').split(',').map(value => value.trim()).filter(Boolean);
+    const sameOrigin = `${req.protocol}://${req.get('host')}`;
+    if (origin && origin !== sameOrigin && !allowed.includes(origin)) return res.status(403).json({ sucesso: false, erro: 'Origem não autorizada.' });
+    if (origin) {
+      res.set('Access-Control-Allow-Origin', origin); res.vary('Origin');
+      res.set('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+      res.set('Access-Control-Allow-Methods', 'GET, POST, PATCH, PUT, DELETE, OPTIONS');
     }
-
-    // Sinais negativos detectados
-    if (alertasFalso && alertasFalso.length > 0) {
-        const grupos = {};
-        alertasFalso.forEach(a => {
-            const cat = a.categoria || 'Geral';
-            if (!grupos[cat]) grupos[cat] = [];
-            grupos[cat].push(a.label);
-        });
-
-        linhas.push('\n📍 Sinais de alerta identificados:');
-        Object.entries(grupos).forEach(([cat, items]) => {
-            linhas.push(`• ${cat}: ${items.join('; ')}.`);
-        });
-    }
-
-    // Sinais positivos detectados
-    if (alertasConfiavel && alertasConfiavel.length > 0) {
-        linhas.push('\n✅ Elementos de credibilidade identificados:');
-        alertasConfiavel.forEach(a => {
-            linhas.push(`• ${a.label}.`);
-        });
-    }
-
-    // Recomendação final
-    const recomendacoes = {
-        'Provavelmente Falsa':      'Recomendamos não compartilhar este conteúdo e, se possível, alertar quem o enviou sobre os riscos de difundir desinformação.',
-        'Tende a ser falsa':        'Antes de compartilhar, busque a informação em ao menos duas fontes jornalísticas confiáveis da região ou nacionais.',
-        'Inconclusivo / Verificar': 'Procure confirmar o conteúdo em veículos regionais confiáveis antes de compartilhá-lo.',
-        'Tende a ser verdadeira':   'O conteúdo parece confiável, mas sempre vale conferir a fonte original antes de compartilhar.',
-        'Provavelmente Verdadeira': 'O conteúdo parece confiável. Ao compartilhá-lo, cite a fonte original para ajudar a combater a desinformação.'
-    };
-    linhas.push('\n' + (recomendacoes[veredito] || ''));
-
-    return linhas.join('\n');
-}
-
-// ── Rota principal de verificação ──────────────────────────
-app.post('/api/verificar', autenticarOpcional, async (req, res) => {
+    if (req.method === 'OPTIONS') return res.sendStatus(204);
+    return next();
+  });
+  app.use(express.json({ limit: '64kb', strict: true }));
+  app.use(express.urlencoded({ extended: false, limit: '64kb', parameterLimit: 20 }));
+  app.use(express.static(path.join(directory, 'public'), { dotfiles: 'deny' }));
+  const requiresDatabase = (req, res, next) => dbReady() ? next() : res.status(503).json({ sucesso: false, erro: 'Banco de dados temporariamente indisponível.' });
+  if (rateLimits) {
+    const options = { windowMs: 15 * 60 * 1000, standardHeaders: 'draft-8', legacyHeaders: false, message: { sucesso: false, erro: 'Muitas tentativas. Tente novamente em alguns minutos.' } };
+    app.use('/api/auth', rateLimit({ ...options, limit: 30 }));
+    app.use('/api/verificar', rateLimit({ ...options, limit: 30 }));
+  }
+  app.use('/api/auth', requiresDatabase, authRoutes);
+  app.use('/api/admin', requiresDatabase, adminRoutes);
+  app.use('/api/historico', requiresDatabase, historyRoutes);
+  app.post('/api/verificar', autenticarOpcional, async (req, res, next) => {
+    const body = validate(inputSchema, req.body, res); if (!body) return;
     try {
-        const { texto, link, cidade, categoria } = req.body;
-        const entrada = (texto || link || '').trim();
-
-        if (!entrada) {
-            return res.status(400).json({ sucesso: false, erro: 'Texto não fornecido para verificação.' });
-        }
-        if (texto?.trim() && link?.trim()) {
-            return res.status(400).json({ sucesso: false, erro: 'Envie apenas o texto ou o link da notícia, não os dois.' });
-        }
-        if (entrada.length < 10) {
-            return res.status(400).json({ sucesso: false, erro: 'Texto muito curto. Forneça pelo menos 10 caracteres.' });
-        }
-
-        console.log(`📨 Verificando | cidade: ${cidade || '—'} | categoria: ${categoria || '—'} | user: ${req.user?.email || 'anônimo'}`);
-
-        let textoParaAnalise = entrada;
-        let noticia = { url: /^https?:\/\//i.test(entrada) ? entrada : (link || ''), conteudoObtido: false };
-        if (noticia.url) {
-            try {
-                noticia = await obterConteudoDaUrl(noticia.url);
-                textoParaAnalise = noticia.texto;
-            } catch (error) {
-                noticia.erroConteudo = error.message;
-            }
-        }
-
-        const dadosAPI = await verificarNoticia(textoParaAnalise);
-
-        // Análise local e cálculo do veredito final
-        const analiseLocal = analisarTextoLocalmente(textoParaAnalise);
-        const dimensoes = analisarDimensoesNoticia(textoParaAnalise, analiseLocal, dadosAPI);
-        const resultado = calcularVeredictoFinal(dadosAPI, analiseLocal);
-        const veredito = obterRotuloVeredicto(resultado.porcentagem);
-
-        // Gera a explicação textual rica contendo os sinais identificados
-        const explicacao = gerarExplicacao({
-            porcentagem: resultado.porcentagem,
-            veredito,
-            alertasFalso: analiseLocal.alertasFalso,
-            alertasConfiavel: analiseLocal.alertasConfiavel,
-            dadosAPI,
-            fonte: resultado.fonte
-        });
-
-        // Salva no histórico se o usuário estiver logado
-        if (req.user) {
-            await Verificacao.create({
-                userId:      req.user._id,
-                texto:       entrada.slice(0, 500),
-                cidade:      cidade || '',
-                categoria:   categoria || '',
-                porcentagem: resultado.porcentagem,
-                veredito,
-                explicacao,
-                fonte:       resultado.fonte,
-                dadosAPI:    dadosAPI.resultados?.slice(0, 3) || []
-            });
-        }
-
-        return res.json({
-            sucesso: true,
-            dados: {
-                ...dadosAPI,
-                porcentagem: resultado.porcentagem,
-                veredito,
-                explicacao,
-                fonte: resultado.fonte,
-                confianca: resultado.confianca,
-                analiseLocal: {
-                    alertasFalso: analiseLocal.alertasFalso,
-                    alertasConfiavel: analiseLocal.alertasConfiavel,
-                    pesoFalso: analiseLocal.pesoFalso,
-                    pesoConfiavel: analiseLocal.pesoConfiavel
-                },
-                dimensoes,
-                noticia: {
-                    url: noticia.url || '',
-                    titulo: noticia.titulo || '',
-                    descricao: noticia.descricao || '',
-                    conteudoObtido: noticia.conteudoObtido,
-                    erroConteudo: noticia.erroConteudo || undefined
-                }
-            }
-        });
-
-    } catch (error) {
-        console.error('❌ Erro no endpoint /api/verificar:', error.message);
-        let erroAmigavel = error.message || 'Erro interno no servidor.';
-        if (/API key not valid|403/i.test(erroAmigavel)) {
-            erroAmigavel = 'Chave da Google API inválida. Verifique GOOGLE_API_KEY no .env.';
-        } else if (/quota|429/i.test(erroAmigavel)) {
-            erroAmigavel = 'Limite de requisições da Google API excedido. Tente novamente em alguns minutos.';
-        }
-        return res.status(500).json({ sucesso: false, erro: erroAmigavel });
-    }
-});
-
-// ── Fontes públicas (listagem para o front-end) ────────────
-app.get('/api/fontes', async (req, res) => {
+      const controller = new AbortController();
+      res.once('close', () => { if (!res.writableFinished) controller.abort(); });
+      const dados = await analyze(body, { signal: controller.signal, buscarRegionais: (text, url) => NoticiaColetada.buscarCorrespondentes(text, url) });
+      if (req.user && dbReady()) {
+        try {
+          await Verificacao.create({ userId: req.user._id, texto: body.texto || body.link, cidade: body.cidade || '', categoria: body.categoria || '',
+            porcentagem: null, confianca: null, veredito: dados.veredito, explicacao: dados.explicacao || '', fonte: dados.fonte || 'analise',
+            dadosAPI: dados.resultados || [], schemaVer: 2, resultado: dados });
+        } catch { dados.avisoHistorico = 'A análise foi concluída, mas não foi possível salvar no histórico.'; }
+      }
+      return res.json({ sucesso: true, dados });
+    } catch (error) { return next(error); }
+  });
+  app.get('/api/fontes', requiresDatabase, async (req, res, next) => {
+    try { return res.json({ sucesso: true, fontes: await Fonte.find({ ativo: true }).sort({ ordem: 1 }).limit(500) }); }
+    catch (error) { return next(error); }
+  });
+  app.get('/api/education', requiresDatabase, async (req, res, next) => {
     try {
-        const fontes = await Fonte.find({ ativo: true }).sort({ ordem: 1 });
-        return res.json({ sucesso: true, fontes });
-    } catch {
-        return res.status(500).json({ sucesso: false, erro: 'Erro ao buscar fontes.' });
-    }
-});
+      const records = await ConteudoEdu.find({ ativo: true }).sort({ ordem: 1 }).limit(500).lean();
+      return res.json({ sucesso: true, licoes: records.map(item => ({ ...item, conteudoHTML: sanitizeLesson(item.conteudoHTML) })) });
+    } catch (error) { return next(error); }
+  });
+  app.get('/api/status', (req, res) => res.json({ status: dbReady() ? 'ok' : 'degradado', app: 'VerificaFato', mongo: dbReady() ? 'conectado' : 'desconectado', timestamp: new Date().toISOString() }));
+  app.use('/api', (req, res) => res.status(404).json({ sucesso: false, erro: 'Rota não encontrada.' }));
+  app.get('*', (req, res) => res.sendFile(path.join(directory, 'public/html/index.html')));
+  app.use((error, req, res, next) => {
+    if (res.headersSent) return next(error);
+    const proposed = error.status || error.statusCode;
+    const status = [400, 401, 403, 404, 413, 422, 429, 503, 504].includes(proposed) ? proposed : 500;
+    const message = status === 413 ? 'O conteúdo enviado excede o limite permitido.' : status === 400 ? 'Dados inválidos.' : status === 422 ? 'Não foi possível analisar esse conteúdo.' : status === 503 ? 'Serviço temporariamente indisponível.' : status === 504 ? 'O serviço demorou para responder.' : 'Não foi possível concluir a operação.';
+    const trustedDomain = error instanceof HttpError;
+    const code = typeof error.code === 'string' && /^[A-Z_]{2,50}$/.test(error.code) ? error.code : undefined;
+    if (trustedDomain && code) res.locals.errorCode = code;
+    return res.status(status).json({ sucesso: false, erro: trustedDomain && status < 500 ? error.message : message, ...(trustedDomain && code ? { codigo: code } : {}) });
+  });
+  return app;
+}
 
-// ── Lições educativas (listagem para o front-end) ──────────
-app.get('/api/education', async (req, res) => {
-    try {
-        const licoes = await ConteudoEdu.find({ ativo: true }).sort({ ordem: 1 });
-        return res.json({ sucesso: true, licoes });
-    } catch (err) {
-        return res.status(500).json({ sucesso: false, erro: 'Erro ao buscar lições educativas.' });
-    }
-});
-
-// ── Health-check ───────────────────────────────────────────
-app.get('/api/status', (req, res) => {
-    res.json({
-        status: 'ok',
-        app: 'VerificaFato v2',
-        apiKey: !!process.env.GOOGLE_API_KEY,
-        mongo: mongoose.connection.readyState === 1 ? 'conectado' : 'desconectado',
-        timestamp: new Date().toISOString()
-    });
-});
-
-// Fallback: serve index.html para páginas do SPA
-app.get('*', (req, res) => {
-    res.sendFile(path.join(__dirname, 'public', 'html', 'index.html'));
-});
-
-// ── Seed: fontes iniciais no banco (se vazio) ──────────────
 async function seedFontesIniciais() {
     const total = await Fonte.countDocuments();
     if (total > 0) return;
@@ -482,14 +324,16 @@ async function seedLicoesIniciais() {
 }
 
 // ── Start ──────────────────────────────────────────────────
-// A Vercel detecta este servidor automaticamente pela chamada listen()
-// (zero-config Express). A porta só é usada localmente.
-const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => {
-    console.log(`\n🚀 VerificaFato v2 rodando em http://localhost:${PORT}`);
-    console.log(`🔑 Google API Key: ${process.env.GOOGLE_API_KEY ? 'configurada' : 'NÃO configurada'}`);
-    console.log(`🔐 JWT Secret: ${process.env.JWT_SECRET ? 'configurada' : 'usando padrão (defina no .env!)'}\n`);
-});
 
-module.exports = app;
-
+const app = createApp();
+export default app;
+const directlyExecuted = process.argv[1] && pathToFileURL(path.resolve(process.argv[1])).href === import.meta.url;
+if (directlyExecuted) {
+  try { getSigningSecret(); } catch {
+    console.error('Configure JWT_SECRET com ao menos 32 caracteres antes de iniciar o servidor.');
+    process.exit(1);
+  }
+  await connectDatabase({ seed: true });
+  const port = Number(process.env.PORT || 3000);
+  app.listen(port, () => console.log(`VerificaFato disponível na porta ${port}.`));
+}

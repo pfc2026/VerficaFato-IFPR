@@ -731,3 +731,20 @@ main { flex: 1 0 auto; }
     .analysis-card { padding: 0.7rem; }
     .news-info-grid { grid-template-columns: 1fr; }
 }
+
+/* Solid fallback also covers mobile captures and unavailable background images. */
+body { background-color: #172d31; }
+
+/* Original result cards, gauges and ordering, with a separate Gemini feedback. */
+.restored-results { overflow-wrap: anywhere; }
+.restored-results h6 > i { margin-right: .35rem; }
+.restored-results .heuristic-disclaimer { font-size: .65rem; opacity: .65; }
+.restored-results .meter-explanation { max-width: 100%; }
+.restored-results .percentage-circle { flex-shrink: 0; }
+.restored-results .analysis-source-link { display: inline-block; text-decoration: underline; overflow-wrap: anywhere; }
+.restored-results .analysis-source-link:hover { color: var(--secondary); }
+.restored-results .gemini-feedback { border-left: 3px solid #74b9ff !important; }
+.restored-results .gemini-feedback-text { white-space: pre-line; font-size: .88rem; line-height: 1.65; }
+.restored-results .analysis-list { padding-left: 1.2rem; margin-bottom: 0; }
+.restored-results .analysis-limitations { opacity: .8; }
+.restored-results .result-disclaimer { font-size: .72rem; opacity: .5; }

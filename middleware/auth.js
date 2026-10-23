@@ -1,149 +1,71 @@
-const crypto = require('crypto');
-const User = require('../models/User');
-
-const JWT_SECRET = process.env.JWT_SECRET || 'vf-secret-mude-em-producao';
-
-function base64url(input) {
-  return Buffer.from(input)
-    .toString('base64')
-    .replace(/=/g, '')
-    .replace(/\+/g, '-')
-    .replace(/\//g, '_');
+import crypto from 'node:crypto';
+import User from '../models/User.js';
+export function getSigningSecret() {
+  const secret = process.env.JWT_SECRET;
+  if (typeof secret !== 'string' || secret.length < 32 || Buffer.byteLength(secret, 'utf8') < 32) {
+    const error = new Error('Autenticação indisponível. Configure uma chave segura no servidor.'); error.status = 503; throw error;
+  }
+  return secret;
 }
-
-/**
- * Gera um token assinado com HMAC SHA256
- */
-function gerarToken(userId) {
-  const header = { alg: 'HS256', typ: 'JWT' };
-  const payload = {
-    id: userId,
-    exp: Math.floor(Date.now() / 1000) + 7 * 24 * 60 * 60
-  };
-
-  const h = base64url(JSON.stringify(header));
-  const p = base64url(JSON.stringify(payload));
-  const data = `${h}.${p}`;
-  const sig = base64url(crypto.createHmac('sha256', JWT_SECRET).update(data).digest());
-  return `${data}.${sig}`;
+const encode = value => Buffer.from(JSON.stringify(value)).toString('base64url');
+export function gerarToken(userId, version = 0) {
+  const now = Math.floor(Date.now() / 1000);
+  const header = encode({ alg: 'HS256', typ: 'JWT' });
+  const payload = encode({ id: String(userId), v: version, iat: now, exp: now + 7 * 24 * 60 * 60 });
+  const data = `${header}.${payload}`;
+  const signature = crypto.createHmac('sha256', getSigningSecret()).update(data).digest('base64url');
+  return `${data}.${signature}`;
 }
-
-/**
- * Valida o token e retorna o payload decodificado se a assinatura e expiração forem válidas.
- */
-function verificarToken(token) {
+export function verificarToken(token) {
+  const secret = getSigningSecret();
   try {
+    if (typeof token !== 'string' || token.length > 4096) return null;
     const parts = token.split('.');
-    if (parts.length !== 3) return null;
-    const [h, p, sig] = parts;
-
-    const data = `${h}.${p}`;
-    const expectedSig = base64url(
-      crypto.createHmac('sha256', JWT_SECRET).update(data).digest()
-    );
-    if (expectedSig !== sig) return null;
-
-    const payloadRaw = Buffer.from(
-      p.replace(/-/g, '+').replace(/_/g, '/'),
-      'base64'
-    ).toString('utf8');
-
-    const payload = JSON.parse(payloadRaw);
-    if (payload?.exp && payload.exp < Math.floor(Date.now() / 1000)) return null;
-
+    if (parts.length !== 3 || parts.some(part => !/^[A-Za-z0-9_-]+$/.test(part))) return null;
+    const [headerPart, payloadPart, signaturePart] = parts;
+    const header = JSON.parse(Buffer.from(headerPart, 'base64url').toString('utf8'));
+    if (header.alg !== 'HS256' || header.typ !== 'JWT') return null;
+    const expected = crypto.createHmac('sha256', secret).update(`${headerPart}.${payloadPart}`).digest();
+    const actual = Buffer.from(signaturePart, 'base64url');
+    if (actual.length !== expected.length || !crypto.timingSafeEqual(actual, expected)) return null;
+    const payload = JSON.parse(Buffer.from(payloadPart, 'base64url').toString('utf8'));
+    const now = Math.floor(Date.now() / 1000);
+    if (!payload || typeof payload.id !== 'string' || !/^[a-f\d]{24}$/i.test(payload.id) || !Number.isSafeInteger(payload.exp) || payload.exp <= now) return null;
+    if (payload.iat !== undefined && (!Number.isSafeInteger(payload.iat) || payload.iat > now + 60)) return null;
+    if (payload.v !== undefined && (!Number.isSafeInteger(payload.v) || payload.v < 0)) return null;
     return payload;
-  } catch (err) {
-    return null;
-  }
+  } catch { return null; }
 }
-
-/**
- * Middleware opcional: tenta autenticar, mas não bloqueia a requisição caso falhe.
- */
-async function autenticarOpcional(req, res, next) {
-  const auth = req.headers.authorization || '';
-  const match = auth.match(/^Bearer\s+(.+)$/i);
-
-  if (!match) {
-    req.user = null;
+async function authenticate(req, res, next, required) {
+  req.user = null;
+  const authorization = req.headers.authorization;
+  if (!authorization) {
+    if (required) return res.status(401).json({ sucesso: false, erro: 'Autenticação necessária.' });
     return next();
   }
-
-  try {
-    const token = match[1];
-    const decoded = verificarToken(token);
-
-    if (!decoded || !decoded.id) {
-      req.user = null;
-      return next();
-    }
-
-    const user = await User.findById(decoded.id).select('-senha');
-    if (!user || !user.ativo) {
-      req.user = null;
-      return next();
-    }
-
-    req.user = user;
-  } catch (err) {
-    req.user = null;
-  }
-
-  return next();
-}
-
-/**
- * Middleware obrigatório: bloqueia requisições sem token válido.
- */
-async function autenticarObrigatorio(req, res, next) {
-  const auth = req.headers.authorization || '';
-  const match = auth.match(/^Bearer\s+(.+)$/i);
-
+  const match = typeof authorization === 'string' && authorization.match(/^Bearer\s+(\S+)$/i);
   if (!match) {
-    return res.status(401).json({ sucesso: false, erro: 'Token não fornecido ou formato inválido.' });
-  }
-
-  try {
-    const token = match[1];
-    const decoded = verificarToken(token);
-
-    if (!decoded || !decoded.id) {
-      return res.status(401).json({ sucesso: false, erro: 'Token inválido ou expirado.' });
-    }
-
-    const user = await User.findById(decoded.id).select('-senha');
-    if (!user) {
-      return res.status(401).json({ sucesso: false, erro: 'Usuário não encontrado.' });
-    }
-
-    if (!user.ativo) {
-      return res.status(401).json({ sucesso: false, erro: 'Sua conta está desativada.' });
-    }
-
-    req.user = user;
+    if (required) return res.status(401).json({ sucesso: false, erro: 'Token inválido ou expirado.' });
     return next();
-  } catch (err) {
-    return res.status(401).json({ sucesso: false, erro: 'Falha na autenticação.' });
+  }
+  try {
+    const decoded = verificarToken(match[1]);
+    if (decoded && User.db.readyState === 1) {
+      const user = await User.findById(decoded.id).select('-senha');
+      if (user?.ativo && (user.tokenVersion || 0) === (decoded.v || 0)) req.user = user;
+    }
+    if (required && !req.user) return res.status(401).json({ sucesso: false, erro: 'Token inválido ou expirado.' });
+    return next();
+  } catch (error) {
+    if (!required) return next();
+    return res.status(error.status === 503 ? 503 : 401).json({ sucesso: false, erro: error.status === 503 ? 'Autenticação indisponível.' : 'Token inválido ou expirado.' });
   }
 }
-
-/**
- * Middleware administrador: exige que o usuário autenticado possua a role 'admin'.
- */
-async function autenticarAdmin(req, res, next) {
-  // Executa primeiro a autenticação obrigatória
-  autenticarObrigatorio(req, res, () => {
-    if (!req.user || req.user.role !== 'admin') {
-      return res.status(403).json({ sucesso: false, erro: 'Acesso negado. Apenas administradores.' });
-    }
+export const autenticarOpcional = (req, res, next) => authenticate(req, res, next, false);
+export const autenticarObrigatorio = (req, res, next) => authenticate(req, res, next, true);
+export function autenticarAdmin(req, res, next) {
+  return autenticarObrigatorio(req, res, () => {
+    if (req.user.role !== 'admin') return res.status(403).json({ sucesso: false, erro: 'Acesso permitido apenas a administradores.' });
     return next();
   });
 }
-
-module.exports = {
-  autenticarOpcional,
-  autenticarObrigatorio,
-  autenticarAdmin,
-  verificarToken,
-  gerarToken
-};

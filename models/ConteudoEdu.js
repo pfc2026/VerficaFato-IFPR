@@ -1,25 +1,13 @@
-const mongoose = require('mongoose');
-
-const ConteudoEduSchema = new mongoose.Schema(
-  {
-    // Identificador estável para a UI/seed (ex: 'maiusculas', 'alarmista')
-    lessonId: { type: String, required: true, unique: true, trim: true },
-
-    titulo: { type: String, required: true, trim: true },
-    descricao: { type: String, required: true, trim: true },
-
-    // HTML completo da lição
-    conteudoHTML: { type: String, required: true },
-
-    categoria: { type: String, required: true, trim: true },
-    nivel: { type: String, default: 'basico', trim: true },
-    icone: { type: String, default: 'fa-book', trim: true },
-
-    ativo: { type: Boolean, default: true },
-    ordem: { type: Number, default: 0 }
-  },
-  { timestamps: true }
-);
-
-module.exports = mongoose.model('ConteudoEdu', ConteudoEduSchema);
-
+import mongoose from 'mongoose';
+const ConteudoEduSchema = new mongoose.Schema({
+  lessonId: { type: String, required: true, unique: true, trim: true, maxlength: 80 },
+  titulo: { type: String, required: true, trim: true, maxlength: 160 },
+  descricao: { type: String, required: true, trim: true, maxlength: 500 },
+  conteudoHTML: { type: String, required: true, maxlength: 50000 },
+  categoria: { type: String, required: true, trim: true, maxlength: 80 },
+  nivel: { type: String, enum: ['basico', 'intermediario', 'avancado'], default: 'basico' },
+  icone: { type: String, default: 'fa-book', maxlength: 80 },
+  ativo: { type: Boolean, default: true },
+  ordem: { type: Number, default: 0, min: 0, max: 10000 }
+}, { timestamps: true, bufferCommands: false });
+export default mongoose.models.ConteudoEdu || mongoose.model('ConteudoEdu', ConteudoEduSchema);
