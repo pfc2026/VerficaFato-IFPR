@@ -15,14 +15,26 @@ TF-IDF usa frequências logarítmicas, IDF suavizado e normalização L2. O coss
 
 Urgência, maiúsculas, pontuação e chamadas de compartilhamento são indicadores descritivos com o trecho que disparou a regra. Um texto correto pode ser sensacionalista; um texto falso pode ter linguagem neutra.
 
-## Explicação por IA
-O servidor produz blocos de explicação fundamentados no resultado estruturado. Gemini é o provedor preferencial da configuração de exemplo (AI_PROVIDER=gemini); OpenAI continua disponível com AI_PROVIDER=openai. Ambos organizam esses blocos e selecionam destaques autorizados. O contrato é o mesmo: um schema restrito e validação local rejeitam novos textos e IDs inventados. Essa restrição deliberada reduz liberdade conversacional para impedir que uma instrução na notícia crie evidências ou altere a classificação. O campo geracao.provedor registra o provedor selecionado.
+## Indicadores e apresentação originais
 
-ENABLE_AI_EXPLANATION=false mantém o envio externo desligado. Para habilitar Gemini, configure GEMINI_API_KEY e GEMINI_MODEL com um identificador disponível na conta e compatível com saída estruturada; nenhum modelo padrão é presumido. Para a alternativa OpenAI, configure OPENAI_API_KEY e OPENAI_MODEL. Falha do provedor, recusa, credenciais/modelo ausentes ou saída fora do contrato preservam a explicação local ancorada nas evidências.
+A interface mantém o medidor circular, a barra, os quatro contadores, as dimensões Sensacionalismo/Qualidade da fonte/Completude, as informações extraídas, as características do texto e as checagens externas do modelo anterior. As regras foram recuperadas do backup e convertidas para ES Modules em services/verification-indicators.js, com os mesmos pesos e limites locais.
 
-GOOGLE_API_KEY é a chave da Google Fact Check Tools API e é separada de GEMINI_API_KEY. Gemini participa somente da organização da explicação; não substitui a consulta às checagens publicadas nem os cálculos de linguagem do TensorFlow.js.
+O cenário da imagem fornecida pelo usuário retorna índice 50%, confiança heurística baixa, zero sinais negativos/positivos, oito palavras e dimensões 0/0/8. O número não é probabilidade de veracidade. As legendas explicam essa distinção.
 
-O modelo não recebe chaves, dados de conta, banco ou ferramentas. Somente os candidatos e textos da análise são enviados quando o operador habilita o serviço. O conteúdo continua sendo dado não confiável.
+A ponderação antiga de resultados da API recebe somente evidências exatas já validadas pelo pipeline factual, com consulta completa e sem conflito. Resultados apenas relacionados, falhas parciais e presença no acervo regional não elevam o medidor. A classificação factual permanece independente do estilo do texto. Isso preserva os cartões e parâmetros locais sem tratar uma reportagem relacionada como confirmação.
 
-## Sem números de confiança arbitrários
-Não há conjunto rotulado, treinamento ou calibração que sustente probabilidade de verdade. porcentagem e confianca são null. Similaridades, quando usadas na recuperação, não são probabilidade factual. Nenhuma métrica de qualidade factual foi inventada. A avaliação futura deve medir cobertura de afirmações, precisão/recall de correspondência, falsos pareamentos (negação, data, pessoa e local), erros por classe e desempenho por domínio, idioma e período, usando divisão temporal e controle de vazamento.
+## Feedback complementar por IA
+
+Gemini gera um comentário natural separado, acrescentado ao fim dos cartões originais. Não determina classificação nem pontuação. OpenAI permanece como alternativa configurável. Ambos usam o mesmo contrato estruturado de seis campos: resumo e orientação selecionam textos autorizados; destaques selecionam IDs de afirmações; feedback contém o comentário; referencias seleciona IDs de fontes; classificacao deve repetir a calculada pelo servidor.
+
+O servidor limita o comentário a 20–1.800 caracteres, valida o JSON e os IDs, impede referências duplicadas e monta links a partir das fontes recebidas. Também rejeita links/HTML na prosa, números não presentes nos dados e padrões de conclusão categórica quando o resultado é inconclusivo ou não verificável. Essas guardas não constituem verificação semântica completa da prosa; o modelo ainda pode interpretar dados incorretamente. A interface identifica o texto como gerado por IA e recomenda conferir fontes/contexto.
+
+ENABLE_AI_EXPLANATION=false desliga o envio. Para habilitar Gemini, configure GEMINI_API_KEY e GEMINI_MODEL disponíveis na conta; para OpenAI, OPENAI_API_KEY e OPENAI_MODEL. GOOGLE_API_KEY é separada e pertence à Google Fact Check Tools API. Falha, recusa ou resposta inválida mostram no cartão um aviso local, sem fingir que foi escrito pelo Gemini.
+
+O modelo recebe somente texto/contexto, candidatos, indicadores, fontes e limitações desta análise. Chaves, dados de conta e banco não fazem parte do payload. Notícias e instruções citadas são dados não confiáveis; não há ferramentas disponíveis ao modelo.
+
+## Calibração e limites
+
+Não há conjunto rotulado, treinamento ou calibração que sustente probabilidade de verdade. porcentagem e confianca da classificação factual, na raiz da resposta, são null. O índice visual original fica em analiseVisual e é identificado como heurístico. Similaridade lexical também não é probabilidade factual.
+
+A avaliação futura deve medir cobertura de afirmações, precisão/recall de correspondência, falsos pareamentos (negação, data, pessoa e local), erros por classe e desempenho por domínio, idioma e período, usando divisão temporal e controle de vazamento. Nenhuma métrica de qualidade factual foi inventada.

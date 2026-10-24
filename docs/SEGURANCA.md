@@ -9,7 +9,7 @@
 - XSS: campos externos/usuários são texto no DOM, URLs limitadas a HTTP(S), HTML educativo sanitizado na escrita, leitura e renderização. Scripts inline e eventos interpolados foram retirados. CSP restringe origens de scripts; estilos inline do design existente permanecem permitidos.
 - Segredos: .env original preservado; chaves não vão ao cliente nem às mensagens de erro. A Fact Check Tools usa GOOGLE_API_KEY; a explicação Gemini usa GEMINI_API_KEY, configurada separadamente. As chaves são usadas somente no servidor. Logs/erros públicos não incluem notícia, credencial ou resposta bruta de provedor.
 - Abuso: limite de payload 64 KiB, texto 20.000 caracteres, oito candidatos, filas limitadas, concorrência de análises/Google/IA limitada, cache TTL/LRU para Google e robots, prazo total de 45 segundos e cancelamento por desconexão, rate limiting nos endpoints públicos de custo/autenticação.
-- Prompt injection: notícias, resultados e títulos são dados. Gemini e OpenAI usam adaptadores com o mesmo contrato de textos e IDs autorizados, schema restrito e validação local. A IA não recebe ferramentas e não pode criar fontes ou alterar classificações. Falha, recusa ou resposta fora do contrato usam a explicação local. Sem geração livre de evidência.
+- Prompt injection: notícias, resultados e títulos são dados. Gemini e OpenAI usam schema restrito e validação local. O comentário é texto livre limitado; classificação e indicadores continuam definidos pelo servidor. Referências aceitam somente IDs recebidos, com URLs resolvidas no servidor. Links/HTML na prosa, novos números e alguns padrões categóricos sem evidência são recusados. Essas guardas não garantem a correção semântica de toda frase gerada. A IA não recebe ferramentas; falha, recusa ou resposta inválida exibem aviso local explícito.
 
 Métricas agregadas de requisições, duração e códigos de erro ficam em memória e são acessíveis somente ao administrador em /api/admin/metricas. Não incluem conteúdo, IP, nomes ou e-mails.
 
@@ -29,3 +29,4 @@ Na validação inicial da migração, banco e provedores reais não foram usados
 - [Gemini models.generateContent](https://ai.google.dev/api/generate-content): interface REST de geração.
 - [OpenAI Structured Outputs](https://developers.openai.com/api/docs/guides/structured-outputs?api-mode=responses): formato de saída restrito.
 - [TensorFlow.js: carregar modelos](https://www.tensorflow.org/js/guide/save_load): artefatos e IOHandler.
+

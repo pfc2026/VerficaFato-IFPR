@@ -8,11 +8,20 @@ import { generateExplanation } from '../services/explanation.js';
 const root = process.cwd();
 const artifacts = path.join(root,'.artifacts');
 await mkdir(artifacts,{recursive:true});
-const example='O museu anunciou uma exposição de história local em 2026.';
+const example='flavio bolsonaro teve um romance com o lula?';
 const result=await analisarConteudo({texto:example},{
   check:async()=>({apiDisponivel:true,status:'ok',resultados:[]}),
   nlp:async()=>({indicadores:[],tensorflow:{disponivel:false,metodo:'fixture visual',modelo:null,limitacoes:['Este é um cenário de teste visual, sem chamadas a serviços externos.']},comparacoes:[]}),
-  explain:result=>generateExplanation(result,{enabled:false})
+  explain:result=>generateExplanation(result,{
+    enabled:true,provider:'gemini',apiKey:'visual-fixture-no-real-key',model:'gemini-fixture',
+    fetchImpl:async(_url,init)=>{
+      const fields=JSON.parse(init.body).generationConfig.responseFormat.text.schema.properties;
+      const output={resumo:fields.resumo.enum[0],orientacao:fields.orientacao.enum[0],destaques:[],
+        feedback:'Exemplo de feedback para a inspeção visual: a pergunta enviada precisa de contexto e de fontes verificáveis. Não há elementos nesta análise para confirmar ou desmentir a mensagem.',
+        referencias:[],classificacao:result.veredito};
+      return new Response(JSON.stringify({candidates:[{finishReason:'STOP',content:{role:'model',parts:[{text:JSON.stringify(output)}]}}]}));
+    }
+  })
 });
 const mime={'.html':'text/html; charset=utf-8','.css':'text/css; charset=utf-8','.js':'text/javascript; charset=utf-8','.png':'image/png'};
 const server=createServer(async(req,res)=>{
@@ -64,6 +73,7 @@ try{
   await send('Page.navigate',{url:origin});
   await ready("document.readyState === 'complete' && document.querySelector('#siteNav').textContent.includes('Entrar') && Boolean(window.bootstrap?.Modal)");
   await evaluate('document.fonts.ready.then(()=>true)');
+  await evaluate("document.documentElement.setAttribute('data-theme','dark');true");
   await screenshot('home-desktop.png');
   console.log('Desktop layout '+JSON.stringify(await evaluate("({body:document.body.scrollWidth,viewport:innerWidth,columns:getComputedStyle(document.querySelector('.hero-shell')).gridTemplateColumns})")));
   await send('Emulation.setDeviceMetricsOverride',{width:390,height:844,deviceScaleFactor:1,mobile:true});
@@ -72,12 +82,19 @@ try{
   console.log('Mobile layout '+JSON.stringify(await evaluate("({body:document.body.scrollWidth,viewport:innerWidth,columns:getComputedStyle(document.querySelector('.hero-shell')).gridTemplateColumns})")));
   await send('Emulation.setDeviceMetricsOverride',{width:1440,height:1100,deviceScaleFactor:1,mobile:false});
   await evaluate("document.getElementById('newsText').value="+JSON.stringify(example)+"; document.getElementById('verificationForm').requestSubmit(); true");
-  await ready("Boolean(document.querySelector('#resultsModal.show')) && document.querySelectorAll('#modalContent h3').length === 7");
+  await ready("Boolean(document.querySelector('#resultsModal.show')) && Boolean(document.querySelector('#modalContent .gemini-feedback')) && document.querySelectorAll('#modalContent .analysis-card').length === 3");
   await pause(350);
   await screenshot('result-desktop.png');
   await evaluate("document.querySelector('#resultsModal .modal-body').scrollTop=document.querySelector('#resultsModal .modal-body').scrollHeight;true");
   await screenshot('result-desktop-bottom.png');
-  console.log('Result rendered '+JSON.stringify(await evaluate("[...document.querySelectorAll('#modalContent h3')].map(node=>node.textContent)")));
+  console.log('Result rendered '+JSON.stringify(await evaluate("({percent:document.querySelector('.meter-percentage').textContent,metrics:[...document.querySelectorAll('.metric-value')].map(node=>node.textContent),cards:[...document.querySelectorAll('.analysis-card strong')].map(node=>node.textContent),feedback:!!document.querySelector('.gemini-feedback-text')})")));
+  await send('Emulation.setDeviceMetricsOverride',{width:475,height:900,deviceScaleFactor:1,mobile:true});
+  await evaluate("document.querySelector('#resultsModal .modal-body').scrollTop=0;true");await pause(200);
+  await screenshot('result-mobile.png');
+  console.log('Result mobile layout '+JSON.stringify(await evaluate("({body:document.body.scrollWidth,viewport:innerWidth,modal:document.getElementById('modalContent').scrollWidth,available:document.getElementById('modalContent').clientWidth})")));
+  await evaluate("document.querySelector('#resultsModal .modal-body').scrollTop=document.querySelector('#resultsModal .modal-body').scrollHeight;true");
+  await screenshot('result-mobile-bottom.png');
   await send('Browser.close').catch(()=>{});
 }catch(error){console.error(error.message);process.exitCode=1;}
 finally{socket?.close();chrome.kill();await new Promise(resolve=>server.close(resolve));}
+

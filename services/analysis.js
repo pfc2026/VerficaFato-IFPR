@@ -109,6 +109,7 @@ async function analyze(input,{
   catch { generated = await generateExplanation(result,{enabled:false}); }
   result.secoes = generated.secoes;
   result.geracao = generated.geracao;
+  result.feedbackGemini = generated.feedbackGemini;
   result.resumo = result.secoes.resumo;
   if (result.geracao.status === 'local' && process.env.ENABLE_AI_EXPLANATION === 'true') {
     result.limitacoes.push(result.geracao.motivo);

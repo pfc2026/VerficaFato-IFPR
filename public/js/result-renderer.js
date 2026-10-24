@@ -270,8 +270,7 @@ function geminiFeedback(data) {
   const feedback=data.feedbackGemini||{};
   const content=text(feedback.texto)||'O feedback do Gemini não está disponível nesta análise. Os indicadores e as checagens acima continuam disponíveis.';
   paragraph(section,content,'gemini-feedback-text mb-2');
-  const provider=text(feedback.provedor);
-  if(provider==='gemini'&&text(feedback.modelo))paragraph(section,'Gemini · '+text(feedback.modelo),'small opacity-75 mb-1');
+  if(feedback.status==='ia')paragraph(section,'Comentário gerado por IA; confira as fontes e o contexto.','small opacity-75 mb-1');
   const sources=list(data.fontes);
   const references=list(feedback.referencias).flatMap(reference=>{
     if(typeof reference==='string'){
@@ -294,7 +293,7 @@ export function renderAnalysis(container,record) {
   const related=regional(data);if(related)root.append(related);
   root.append(metrics(visual,data));
   const details=overview(visual.dimensoes);if(details)root.append(details);
-  const info=information(visual.dimensoes.informacoes);if(info)root.append(info);
+  const info=information(visual.dimensoes.informacoes || {alegacaoPrincipal:visual.texto});if(info)root.append(info);
   const article=articleSource(data.noticia);if(article)root.append(article);
   const signals=patterns(visual.analiseLocal);if(signals)root.append(signals);
   root.append(characteristics(visual,data),reviewResults(data));
@@ -307,3 +306,4 @@ export function renderAnalysis(container,record) {
   paragraph(root,'A análise de padrões é automática e não substitui verificação jornalística humana. Sempre consulte fontes primárias antes de compartilhar.','result-disclaimer mt-3 mb-0 text-center');
   output.append(root);container.replaceChildren(output);return data;
 }
+

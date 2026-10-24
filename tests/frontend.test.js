@@ -5,6 +5,7 @@ import { JSDOM } from 'jsdom';
 import { renderAnalysis, normalizeResult, resultLabel } from '../public/js/result-renderer.js';
 import { safeWebUrl, sanitizeLessonHtml, showNotice } from '../public/js/safe-dom.js';
 import { detectInput } from '../public/js/input.js';
+import { criarAnaliseVisual } from '../services/verification-indicators.js';
 
 const attack = '<img src=x onerror="window.pwned=1"><script>window.pwned=2</script>';
 function browser() {
@@ -32,16 +33,38 @@ test('URLs ativas, credenciais e caracteres de controle são rejeitados', () => 
   for (const url of ['javascript:alert(1)','data:text/html,x','ftp://example.com','https://user:pass@example.com','java\nscript:alert(1)','https://example.com\nx']) assert.equal(safeWebUrl(url),null,url);
   assert.equal(safeWebUrl('https://example.com/check?q=a&b=c'),'https://example.com/check?q=a&b=c');
 });
-test('resultado mostra as sete seções e nenhuma porcentagem factual', () => {
+test('resultado restaura medidor, contadores e cartões da imagem com feedback separado', () => {
   const {dom,root}=browser();
-  renderAnalysis(root,result({porcentagem:99,confianca:'alta'}));
-  assert.deepEqual([...root.querySelectorAll('h3')].map(node=>node.textContent),[
-    'Resumo da análise','Resultado da verificação','O que encontramos','Análise de linguagem','Fontes consultadas','Orientação ao usuário','Limitações'
-  ]);
-  assert.doesNotMatch(root.textContent,/99%|Confiança alta|Provavelmente/);
-  assert.match(root.textContent,/Sem evidências suficientes/);
+  const input='flavio bolsonaro teve um romance com o lula?';
+  const visual=criarAnaliseVisual(input);
+  const feedback='A pergunta precisa de contexto e fontes verificáveis. Confira a origem da mensagem antes de compartilhar.';
+  renderAnalysis(root,result({porcentagem:null,confianca:null,analiseVisual:visual,
+    feedbackGemini:{texto:feedback,status:'ia',provedor:'gemini',referencias:[]}}));
+  assert.equal(root.querySelector('.meter-percentage').textContent,'50%');
+  assert.deepEqual([...root.querySelectorAll('.metric-value')].map(node=>node.textContent),['0','0','8','0']);
+  assert.match(root.querySelector('.credibility-meter').textContent,/Inconclusivo \/ Verificar/);
+  assert.match(root.querySelector('.credibility-meter').textContent,/não representa probabilidade/);
+  assert.deepEqual([...root.querySelectorAll('.analysis-card strong')].map(node=>node.textContent),['0/100','0/100','8/100']);
+  assert.match(root.querySelector('.news-information').textContent,/flavio bolsonaro teve um romance com o lula\?/);
+  assert.match(root.querySelector('.text-characteristics').textContent,/8 palavra/);
+  assert.equal(root.querySelectorAll('.gemini-feedback').length,1);
+  assert.equal(root.querySelector('.gemini-feedback-text').textContent,feedback);
+  const nodes=[...root.querySelector('.restored-results').children];
+  assert.ok(nodes.indexOf(root.querySelector('.gemini-feedback'))>nodes.indexOf(root.querySelector('.text-characteristics')));
+  assert.equal(root.querySelectorAll('h3').length,0);
+  assert.equal(resultLabel({resultado:result({analiseVisual:visual})}),'Inconclusivo / Verificar');
   dom.window.close();
 });
+
+test('resultado sem indicadores armazenados não recebe porcentagem inventada', () => {
+  const {dom,root}=browser();
+  renderAnalysis(root,result({porcentagem:99,confianca:'alta'}));
+  assert.equal(root.querySelector('.meter-percentage').textContent,'—');
+  assert.doesNotMatch(root.textContent,/99%|Confiança alta/);
+  assert.match(root.querySelector('.gemini-feedback').textContent,/não está disponível/);
+  dom.window.close();
+});
+
 test('conteúdo hostil em todos os campos é renderizado como texto e links ativos são bloqueados', () => {
   const {dom,root}=browser();
   renderAnalysis(root,result({
@@ -201,16 +224,35 @@ test('CRUD administrativo mantém texto, nomes, fontes e IDs hostis inertes', as
   } finally {Object.assign(globalThis,original);dom.window.close();}
 });
 
-test('afirmações e limitações não repetem a mesma explicação em prosa e cartões', () => {
+test('feedback e limitações aparecem uma vez e fontes da IA vêm do servidor', () => {
   const {dom,root}=browser();
-  const explanation='Não foi encontrada uma checagem correspondente.';
+  const feedback='Confira o documento original e o contexto antes de compartilhar a mensagem recebida.';
   const limitation='A busca tem cobertura limitada.';
+  const real={id:'e1',titulo:'Fonte original',url:'https://example.com/checagem',tipo:'checagem'};
   renderAnalysis(root,result({
-    afirmacoes:[{id:'c1',texto:'Uma afirmação de teste.',tipo:'fato',veredito:'Sem evidências suficientes',justificativa:explanation,evidencias:[]}],
-    secoes:{encontramos:'Uma afirmação de teste. '+explanation,limitacoes:limitation},
-    limitacoes:[limitation]
+    fontes:[real],
+    feedbackGemini:{texto:feedback,status:'ia',provedor:'gemini',referencias:[
+      {id:'e1',url:'https://inventada.example/fonte'}, {id:'desconhecido',url:'https://outra.example/fonte'}
+    ]},
+    secoes:{limitacoes:limitation},limitacoes:[limitation,limitation]
   }));
-  assert.equal(root.textContent.split(explanation).length-1,1);
+  assert.equal(root.textContent.split(feedback).length-1,1);
   assert.equal(root.textContent.split(limitation).length-1,1);
+  const links=[...root.querySelectorAll('.feedback-references a')];
+  assert.equal(links.length,1);assert.equal(links[0].href,real.url);
+  assert.doesNotMatch(root.textContent,/inventada\.example|outra\.example/);
+  dom.window.close();
+});
+
+test('feedback e indicadores hostis ficam inertes sem executar conteúdo', () => {
+  const {dom,root}=browser();
+  const visual=criarAnaliseVisual('Uma mensagem de teste que precisa ser conferida.');
+  visual.veredito=attack;visual.explicacao=attack;
+  visual.dimensoes.informacoes.alegacaoPrincipal=attack;
+  visual.dimensoes.informacoes.links=['javascript:alert(1)'];
+  renderAnalysis(root,result({analiseVisual:visual,feedbackGemini:{texto:attack,status:'ia',referencias:[{id:'inventada',url:'javascript:alert(1)'}]}}));
+  assert.equal(root.querySelector('.gemini-feedback-text').textContent,attack);
+  assert.equal(root.querySelectorAll('script,img,iframe,svg,[onerror],[onclick],a[href^="javascript:"]').length,0);
+  assert.equal(dom.window.pwned,undefined);
   dom.window.close();
 });

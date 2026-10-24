@@ -10,8 +10,8 @@ A pasta originalmente configurada no chat não existia. As alterações foram fe
 - Entrada por texto ou URL, afirmações individuais, Google Fact Check, fontes com datas e classificação conservadora baseada em evidências.
 - TensorFlow.js no cálculo lexical e carregador opcional de modelo semântico avaliado para português.
 - Gemini como provedor preferencial da explicação estruturada. OpenAI permanece como alternativa explícita, sem dependência adicional.
-- Respostas limitadas a textos e IDs autorizados pelo servidor, com fallback local para falhas, bloqueios ou conteúdo inválido do modelo.
-- Interface em sete seções, preservando layout e temas; histórico completo v2, perfil e administração.
+- Comentário complementar em linguagem natural pelo Gemini, separado dos resultados e indicadores calculados. Schema, referências por IDs e guardas locais; aviso explícito em caso de indisponibilidade.
+- Modelo original restaurado a partir da imagem e do backup: medidor, contadores, três dimensões, extração, características e checagens externas. Feedback do Gemini acrescentado ao final. Histórico completo v2, perfil e administração preservados.
 - Proteções contra SSRF, XSS e operadores Mongo; JWT estrito, sessões revogáveis, schemas, CSP/CORS, rate limiting, limites de recursos e métricas privadas.
 
 ## Gemini configurado e validado
@@ -33,12 +33,14 @@ O relatório está em docs/RELATORIO.md e o gerador visual em scripts/visual-che
 data/noticias.json, noticias.jsonl e noticias.csv contêm os mesmos nove registros em português, com nove URLs e nove hashes únicos. Textos, títulos, datas, origem, coleta e hashes foram preservados; duas URLs tiveram apenas a barra final normalizada.
 As versões anteriores dos seis arquivos e a variante de metadados da listagem antiga permanecem no backup.
 
-Backup local único: backups/projeto-antes-da-limpeza-2026-10-23.zip, com 121 arquivos e manifesto SHA-256 verificado antes das exclusões. Inclui fontes anteriores, snapshots de migração, acervos originais e capturas. Não inclui .env, node_modules ou perfis de navegador. Está excluído do versionamento e do deploy.
+Backup original: backups/projeto-antes-da-limpeza-2026-10-23.zip, com 121 arquivos e manifesto SHA-256 verificado antes das exclusões. Inclui fontes anteriores, snapshots de migração, acervos originais e capturas. Não inclui .env, node_modules ou perfis de navegador. Está excluído do versionamento e do deploy.
 SHA-256 do ZIP: 04bce7c29f4a46617a79f8186710dafa991f904c7cd838e5d5c4a51376e0a6ab.
 
+Antes do retorno visual, também foi criado backups/antes-do-retorno-visual-2026-10-23.zip: 72 arquivos do projeto, com manifesto e hashes conferidos, sem .env, dependências ou outros backups.
+
 ## Validação final
-**106 testes passaram; 49 arquivos JavaScript passaram na análise de sintaxe.** A auditoria npm anterior reportou zero vulnerabilidades conhecidas; as dependências não foram alteradas nesta rodada.
-Houve inspeção visual anterior em Chrome desktop/celular e teste real do Gemini nesta rodada. Veja [VALIDACAO.md](VALIDACAO.md).
+**129 testes passaram; 51 arquivos JavaScript passaram na análise de sintaxe.** A auditoria npm anterior reportou zero vulnerabilidades conhecidas; as dependências não foram alteradas nesta rodada.
+A restauração foi inspecionada em Chrome desktop de 1440 px e celular de 475 px, sem overflow horizontal. O exemplo da imagem retornou 50%, contadores 0/0/8/0 e dimensões 0/0/8. Uma nova chamada real do Gemini respondeu HTTP 200, gerou comentário livre válido e preservou a classificação calculada. Veja [VALIDACAO.md](VALIDACAO.md).
 
 ## Pendências técnicas
 Nenhum modelo semântico treinado para português está incluído. O TensorFlow executa comparação lexical real; ativar embeddings exige pesos, vocabulário e avaliação compatíveis com [MODELOS.md](MODELOS.md).
@@ -46,3 +48,4 @@ MongoDB e Google Fact Check mantiveram suas configurações anteriores, sem uso 
 
 Execução e configuração: [README](../README.md) e [.env.example](../.env.example).
 Referências: [metodologia](METODOLOGIA.md), [segurança](SEGURANCA.md), [coletor](SCRAPER.md).
+
