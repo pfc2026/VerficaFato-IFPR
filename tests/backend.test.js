@@ -157,9 +157,9 @@ test('failed history persistence does not destroy a completed analysis', async t
   assert.doesNotMatch(JSON.stringify(result), /internal-connection-detail/);
 });
 test('educational API sanitizes preexisting lesson HTML', async t => {
-  t.mock.method(ConteudoEdu, 'find', () => ({ sort: () => ({ limit: () => ({ lean: async () => [{ titulo: 'Lição', conteudoHTML: '<p>Texto</p><script>evil()</script>' }] }) }) }));
+  t.mock.method(ConteudoEdu, 'find', () => ({ sort: () => ({ limit: () => ({ lean: async () => [{ lessonId: 'custom-test', titulo: 'Lição', conteudoHTML: '<p>Texto</p><script>evil()</script>' }] }) }) }));
   const request = await http(t, { dbReady: () => true });
-  const data = await (await request('/api/education')).json(); assert.equal(data.licoes[0].conteudoHTML, '<p>Texto</p>');
+  const data = await (await request('/api/education')).json(); assert.equal(data.licoes.find(item=>item.lessonId==='custom-test').conteudoHTML, '<p>Texto</p>');
 });
 test('domain failures preserve safe 4xx codes and internal failures hide details', async t => {
   let internal = false;

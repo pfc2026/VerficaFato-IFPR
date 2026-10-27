@@ -3,152 +3,132 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="description" content="VerificaFato — checagem de notícias e alegações.">
-    <title>VerificaFato — Verificação de notícias</title>
+    <meta name="description" content="Aprenda a investigar informações com aulas curtas, exercícios e checagem assistida de notícias. VerificaFato: verifique antes de compartilhar.">
+    <meta name="theme-color" content="#10251d">
+    <title>VerificaFato — Aprenda a verificar</title>
     <link rel="icon" type="image/png" href="/html/img/Logo%20oficial.png">
-
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <link rel="stylesheet" href="/css/style.css">
+    <link rel="stylesheet" href="/css/education.css">
 </head>
-<body>
-
-    <!-- Alertas flutuantes -->
+<body class="learning-home">
+    <a class="skip-link" href="#inicio">Pular para o conteúdo</a>
     <div id="alertContainer" class="position-fixed top-0 start-50 translate-middle-x p-3" style="z-index:2000;" aria-live="polite"></div>
-
-    <!-- Header -->
     <header class="site-header">
         <div class="container header-shell">
             <a class="brand-link" href="#inicio" aria-label="VerificaFato — início">
-                <span>VerificaFato</span>
+                <span class="brand-mark" aria-hidden="true"><i class="fas fa-check-double"></i></span>
+                <span>VerificaFato<small>Informação com contexto.</small></span>
             </a>
-
             <nav class="site-nav" id="siteNav" aria-label="Navegação principal">
-                <a href="#inicio"    class="nav-link">Verificar</a>
+                <a href="#inicio" class="nav-link">Verificar</a>
+                <a href="#aprender" class="nav-link">Aprender</a>
+                <a href="#desafio" class="nav-link">Quiz</a>
             </nav>
-
-            <!-- Botão de tema (dark/light) -->
             <div id="theme-toggle-container" class="theme-toggle-inline"></div>
         </div>
     </header>
-
     <main id="inicio">
-
-        <!-- Hero + Formulário -->
         <section class="hero-section" aria-labelledby="heroTitle">
             <div class="container hero-shell">
-
                 <div class="hero-content">
-                    <p class="eyebrow">Checagem de informação</p>
-                    <h1 id="heroTitle">Verifique antes de compartilhar</h1>
-                    <p class="tagline">Analise notícias e alegações antes de compartilhar.</p>
-
-                    <div class="hero-metrics" aria-label="Recursos de verificação">
-                        <div><strong>Texto</strong><span>análise detalhada</span></div>
-                        <div><strong>IA</strong><span>análise assistida</span></div>
-                        <div><strong>Fontes</strong><span>para consulta</span></div>
+                    <p class="eyebrow"><span class="live-dot" aria-hidden="true"></span> Educação midiática para o dia a dia</p>
+                    <h1 id="heroTitle">Verifique antes de <span>compartilhar.</span></h1>
+                    <p class="tagline">Uma pausa faz diferença. Investigue uma informação e aprenda a encontrar fontes, conferir o contexto e fazer boas perguntas.</p>
+                    <div class="hero-metrics" aria-label="Recursos disponíveis">
+                        <div><strong>Investigue</strong><span>texto ou link</span></div>
+                        <div><strong>Aprenda</strong><span>aulas e exemplos</span></div>
+                        <div><strong>Pratique</strong><span>quiz comentado</span></div>
                     </div>
+                    <a href="#aprender" class="learn-link">Quero aprender a checar <span aria-hidden="true">↗</span></a>
                 </div>
-
-                <!-- Painel de pesquisa -->
                 <section class="verification-panel" aria-labelledby="searchTitle">
                     <div class="panel-heading">
-                        <div>
-                            <span class="section-kicker">Pesquisa</span>
-                            <h2 id="searchTitle">Pesquisar notícia</h2>
-                        </div>
-                        <span class="panel-status">
-                            <i class="fas fa-shield-halved" aria-hidden="true"></i>
-                            Verificação assistida
-                        </span>
+                        <div><span class="section-kicker">Checagem assistida</span><h2 id="searchTitle">Vamos conferir?</h2></div>
+                        <span class="panel-status"><i class="fas fa-magnifying-glass" aria-hidden="true"></i> Texto ou link</span>
                     </div>
-
                     <form id="verificationForm" novalidate>
                         <div class="form-grid">
                             <div class="field-block field-block-large">
-                                <label for="newsText">Texto ou link da notícia</label>
-                                <textarea class="form-control search-box" id="newsText" rows="7"
-                                    placeholder="Cole uma notícia, afirmação, mensagem encaminhada ou link."
-                                    maxlength="20000"></textarea>
+                                <label for="newsText">Cole uma mensagem, afirmação ou link</label>
+                                <textarea class="form-control search-box" id="newsText" rows="5" aria-describedby="inputHelp charCounter" placeholder="Recebeu algo e ficou na dúvida? Cole aqui o conteúdo que você quer investigar." maxlength="20000"></textarea>
                                 <small class="char-counter" id="charCounter">0 / 20.000</small>
                             </div>
-
-                            <div class="form-side">
-                                <div class="field-block">
-                                    <label for="newsLink">Link da notícia <span class="optional">(opcional)</span></label>
-                                    <input class="form-control search-box link-input" id="newsLink" type="url"
-                                        inputmode="url" autocomplete="off"
-                                        placeholder="https://exemplo.com/noticia">
-                                </div>
-
-                            </div>
                         </div>
-
                         <button type="submit" class="btn btn-verify w-100" id="submitBtn">
-                            <span class="btn-text">
-                                <i class="fas fa-magnifying-glass" aria-hidden="true"></i>
-                                Verificar notícia
-                            </span>
+                            <span class="btn-text"><i class="fas fa-magnifying-glass" aria-hidden="true"></i> Verificar informação</span>
                             <span class="loading-spinner spinner-border spinner-border-sm d-none" role="status" aria-hidden="true"></span>
                         </button>
                     </form>
-
-                    <p class="privacy-note">
-                        <i class="fas fa-lock" aria-hidden="true"></i>
-                        Use texto ou link — não precisa preencher os dois.
-                    </p>
+                    <p class="privacy-note" id="inputHelp"><i class="fas fa-circle-info" aria-hidden="true"></i> A análise ajuda a investigar. Leia as fontes e o contexto antes de concluir.</p>
                 </section>
             </div>
         </section>
 
+        <section class="checklist-section" aria-labelledby="checklistTitle">
+            <div class="container checklist-shell">
+                <div class="checklist-intro"><span class="section-kicker">Seu primeiro passo</span><h2 id="checklistTitle">Antes de encaminhar,<br>confira estas 4 coisas.</h2></div>
+                <ol class="sharing-checklist">
+                    <li><span class="check-number">01</span><div><h3>De onde veio?</h3><p>Procure a publicação original e quem se responsabiliza pela informação.</p></div></li>
+                    <li><span class="check-number">02</span><div><h3>É de quando?</h3><p>Confira a data e se o conteúdo ainda corresponde ao momento atual.</p></div></li>
+                    <li><span class="check-number">03</span><div><h3>Qual é a evidência?</h3><p>Abra os documentos citados e compare com fontes independentes.</p></div></li>
+                    <li><span class="check-number">04</span><div><h3>O contexto está completo?</h3><p>Leia além do título. Fotos, números e falas podem estar recortados.</p></div></li>
+                </ol>
+            </div>
+        </section>
+
+        <section class="education-section" id="aprender" aria-labelledby="educationTitle">
+            <div class="container">
+                <div class="learning-heading">
+                    <div><span class="section-kicker">Conhecimento que você leva com você</span><h2 id="educationTitle">Aprenda a verificar.</h2><p>Aulas curtas, situações do cotidiano e passos para investigar por conta própria. Comece pelo assunto que faz sentido para você.</p></div>
+                    <div class="learning-stamp"><i class="fas fa-book-open" aria-hidden="true"></i><span>Aprenda no<br>seu ritmo</span></div>
+                </div>
+                <div class="education-toolbar"><div id="educationFilters" class="education-filters" role="group" aria-label="Filtrar aulas por nível"></div><p id="educationProgress" class="education-progress"></p></div>
+                <p id="educationStatus" class="education-status" role="status"></p>
+                <div id="educationGrid" class="education-grid"></div>
+                <noscript><p>Ative o JavaScript para abrir as aulas e fazer o quiz. Você também pode consultar o <a href="https://educamidia.org.br/guia/">Guia da Educação Midiática</a>.</p></noscript>
+            </div>
+        </section>
+
+        <section class="quiz-section" id="desafio" aria-labelledby="quizTitle">
+            <div class="container quiz-shell">
+                <div class="quiz-intro"><span class="section-kicker">Agora é com você</span><h2 id="quizTitle">E você,<br>compartilharia?</h2><p>Pratique com cinco situações fictícias. Cada resposta vem com uma explicação para ajudar na próxima decisão.</p><span class="quiz-note"><i class="fas fa-lightbulb" aria-hidden="true"></i> Errar faz parte de aprender.</span></div>
+                <div id="quizContent" class="quiz-card"></div>
+            </div>
+        </section>
+
+        <section class="method-section" id="como-funciona" aria-labelledby="methodTitle">
+            <div class="container method-shell">
+                <div><span class="section-kicker">Transparência faz parte da checagem</span><h2 id="methodTitle">Entenda o resultado.</h2><p>O VerificaFato combina busca de checagens publicadas e análise automática de linguagem. Confira sempre se a afirmação, a data e o contexto das fontes correspondem ao que você recebeu.</p><a class="learn-link" href="#licao-ia" data-open-lesson="ia">Entenda os limites da IA <span aria-hidden="true">↗</span></a></div>
+                <div class="method-notes"><article><i class="fas fa-link" aria-hidden="true"></i><div><h3>As evidências vêm primeiro</h3><p>Uma conclusão precisa de fontes pertinentes. Um texto bem escrito também pode conter informação falsa.</p></div></article><article><i class="fas fa-circle-question" aria-hidden="true"></i><div><h3>“Sem evidências” é uma resposta válida</h3><p>Não encontrar uma checagem não confirma nem desmente a mensagem. Pode ser necessário continuar investigando.</p></div></article><article><i class="fas fa-chart-simple" aria-hidden="true"></i><div><h3>O índice descreve padrões do texto</h3><p>O percentual de linguagem não representa a chance de a informação ser verdadeira.</p></div></article></div>
+            </div>
+        </section>
     </main>
 
-    <!-- Modal de resultado -->
     <div class="modal fade" id="resultsModal" tabindex="-1" aria-labelledby="resultsModalLabel" aria-hidden="true">
-        <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
-            <div class="modal-content glass-card">
-                <div class="modal-header border-0">
-                    <h5 class="modal-title" id="resultsModalLabel">
-                        <i class="fas fa-check-double me-2"></i>Resultado da Verificação
-                    </h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
-                </div>
-                <div class="modal-body" id="modalContent"></div>
-                <div class="modal-footer border-0">
-                    <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Fechar</button>
-                    <button type="button" class="btn btn-verify btn-sm" id="shareBtn">
-                        <i class="fas fa-share me-1"></i>Compartilhar
-                    </button>
-                </div>
-            </div>
-        </div>
+        <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable"><div class="modal-content glass-card">
+            <div class="modal-header border-0"><h2 class="modal-title h5" id="resultsModalLabel"><i class="fas fa-check-double me-2" aria-hidden="true"></i>Resultado da análise</h2><button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button></div>
+            <div class="modal-body" id="modalContent"></div>
+            <div class="modal-footer border-0"><button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Fechar</button><button type="button" class="btn btn-verify btn-sm" id="shareBtn"><i class="fas fa-share me-1" aria-hidden="true"></i>Compartilhar</button></div>
+        </div></div>
     </div>
-
-    <!-- Modal de lição -->
-    <div id="lessonModal" class="lesson-modal" style="display:none;" role="dialog" aria-modal="true" aria-labelledby="lessonTitle">
-        <div class="modal-overlay" data-close-lesson></div>
-        <div class="modal-content lesson-content">
-            <div class="modal-header">
-                <h2 id="lessonTitle">Título da lição</h2>
-                <button type="button" class="modal-close" data-close-lesson aria-label="Fechar lição">
-                    <i class="fas fa-xmark" aria-hidden="true"></i>
-                </button>
-            </div>
+    <dialog id="lessonModal" class="lesson-dialog" aria-labelledby="lessonTitle">
+        <div class="lesson-content">
+            <div class="modal-header"><h2 id="lessonTitle" tabindex="-1">Título da lição</h2><button type="button" class="modal-close" data-close-lesson aria-label="Fechar lição"><i class="fas fa-xmark" aria-hidden="true"></i></button></div>
+            <p id="lessonMeta" class="lesson-reading-meta"></p>
             <div class="modal-body" id="lessonBody"></div>
+            <div class="lesson-footer"><button type="button" class="btn btn-verify" id="completeLessonBtn">Marcar como concluída</button><button type="button" class="lesson-back" data-close-lesson>Voltar às aulas</button></div>
         </div>
-    </div>
-
-    <!-- Footer -->
+    </dialog>
     <footer class="footer py-4">
         <div class="container text-center">
-            <h2 class="h6 mb-2"><i class="fas fa-shield-halved me-1" aria-hidden="true"></i> VerificaFato</h2>
-            <p class="footer-text mb-3 small opacity-70">Combatendo a desinformação com tecnologia e análise.</p>
-            <div class="footer-bottom border-top pt-3">
-                <small>&copy; 2026 VerificaFato — Verificação de informação</small>
-            </div>
+            <h2 class="h6 mb-2"><i class="fas fa-check-double me-1" aria-hidden="true"></i> VerificaFato</h2>
+            <p class="footer-text mb-3 small opacity-70">Mais contexto. Boas perguntas. Informação com responsabilidade.</p>
+            <nav class="footer-learning-links" aria-label="Links do rodapé"><a href="#aprender">Aprender</a><a href="#desafio">Praticar</a><a href="#como-funciona">Como funciona</a><a href="https://educamidia.org.br/guia/" target="_blank" rel="noopener noreferrer">Referência: EducaMídia ↗</a></nav>
+            <div class="footer-bottom border-top pt-3"><small>&copy; 2026 VerificaFato — Verificação de informação</small></div>
         </div>
     </footer>
-
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script src="/js/dark-mode.js"></script>
     <script type="module" src="/js/main.js"></script>

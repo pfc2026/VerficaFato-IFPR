@@ -2,6 +2,7 @@ import { showNotice, getStoredUser } from './safe-dom.js';
 import { renderAnalysis, resultLabel } from './result-renderer.js';
 import { mostrarModalPerfil } from './account.js';
 import { detectInput, MAX_TEXT_LENGTH } from './input.js';
+import { initEducation } from './education.js';
 const showAlert = showNotice;
 const verificationForm = document.getElementById('verificationForm');
 const newsTextEl = document.getElementById('newsText');
@@ -22,7 +23,7 @@ function setLoading(on) {
 verificationForm.addEventListener('submit', async event => {
   event.preventDefault();
   let payload;
-  try { payload = detectInput(newsTextEl.value, newsLinkEl.value); }
+  try { payload = detectInput(newsTextEl.value, newsLinkEl?.value || ''); }
   catch (error) { showNotice(error.message); return; }
   setLoading(true);
   const controller = new AbortController();
@@ -47,9 +48,6 @@ document.getElementById('shareBtn')?.addEventListener('click', () => {
   if (navigator.share) navigator.share(data).catch(() => {});
   else navigator.clipboard?.writeText(data.url).then(() => showNotice('Link copiado!', 'success')).catch(() => showNotice('Não foi possível copiar.', 'danger'));
 });
-document.querySelectorAll('[data-close-lesson]').forEach(node => node.addEventListener('click', () => {
-  document.getElementById('lessonModal').style.display = 'none';
-}));
 function atualizarNav() {
     const nav = document.querySelector('.site-nav');
     if (!nav) return;
@@ -60,6 +58,8 @@ function atualizarNav() {
     // Mapeia links padrão
     let html = `
         <a href="/#inicio" class="nav-link">Verificar</a>
+        <a href="/#aprender" class="nav-link">Aprender</a>
+        <a href="/#desafio" class="nav-link">Quiz</a>
     `;
 
     if (token && user) {
@@ -101,3 +101,5 @@ function atualizarNav() {
 
 window.addEventListener('vf-account-updated', atualizarNav);
 document.addEventListener('DOMContentLoaded', atualizarNav);
+if (document.readyState !== 'loading') atualizarNav();
+initEducation();

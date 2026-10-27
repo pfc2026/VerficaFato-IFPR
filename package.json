@@ -32,8 +32,13 @@
     "mongodb": "^7.3.0",
     "mongoose": "^9.7.2",
     "robots-parser": "^3.0.1",
-    "sanitize-html": "^2.17.0",
+    "sanitize-html": "2.18.1",
     "zod": "^4.1.0"
+  },
+  "overrides": {
+    "sanitize-html": {
+      "htmlparser2": "10.1.0"
+    }
   },
   "devDependencies": {
     "jsdom": "^26.1.0"

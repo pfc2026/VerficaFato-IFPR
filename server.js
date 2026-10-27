@@ -12,12 +12,14 @@ import { requestMetrics } from './middleware/metrics.js';
 import { autenticarOpcional, getSigningSecret } from './middleware/auth.js';
 import { textField, httpUrl, validate } from './middleware/validation.js';
 import authRoutes from './routes/auth.js';
-import adminRoutes, { sanitizeLesson } from './routes/admin.js';
+import adminRoutes from './routes/admin.js';
 import historyRoutes from './routes/historico.js';
 import Fonte from './models/Fonte.js';
 import ConteudoEdu from './models/ConteudoEdu.js';
 import Verificacao from './models/Verificacao.js';
 import NoticiaColetada from './models/NoticiaColetada.js';
+import { lessons } from './public/js/education-content.js';
+import { educationCatalog } from './services/education.js';
 
 const directory = path.dirname(fileURLToPath(import.meta.url));
 mongoose.set('bufferCommands', false);
@@ -95,11 +97,15 @@ export function createApp({ analyze = analisarConteudo, dbReady = () => mongoose
     try { return res.json({ sucesso: true, fontes: await Fonte.find({ ativo: true }).sort({ ordem: 1 }).limit(500) }); }
     catch (error) { return next(error); }
   });
-  app.get('/api/education', requiresDatabase, async (req, res, next) => {
+  app.get('/api/education', async (req, res) => {
+    if (!dbReady()) return res.json({ sucesso: true, licoes: educationCatalog(), origem: 'local' });
     try {
-      const records = await ConteudoEdu.find({ ativo: true }).sort({ ordem: 1 }).limit(500).lean();
-      return res.json({ sucesso: true, licoes: records.map(item => ({ ...item, conteudoHTML: sanitizeLesson(item.conteudoHTML) })) });
-    } catch (error) { return next(error); }
+      // Include inactive records so a disabled default lesson stays hidden.
+      const records = await ConteudoEdu.find({}).sort({ ordem: 1 }).limit(500).lean();
+      return res.json({ sucesso: true, licoes: educationCatalog(records), origem: 'catalogo' });
+    } catch {
+      return res.json({ sucesso: true, licoes: educationCatalog(), origem: 'local' });
+    }
   });
   app.get('/api/status', (req, res) => res.json({ status: dbReady() ? 'ok' : 'degradado', app: 'VerificaFato', mongo: dbReady() ? 'conectado' : 'desconectado', timestamp: new Date().toISOString() }));
   app.use('/api', (req, res) => res.status(404).json({ sucesso: false, erro: 'Rota não encontrada.' }));
@@ -139,184 +145,7 @@ async function seedLicoesIniciais() {
     try {
         const total = await ConteudoEdu.countDocuments();
         if (total > 0) return;
-        const licoes = [
-            {
-                lessonId: 'maiusculas',
-                titulo: 'Atenção com excesso de maiúsculas',
-                descricao: 'Textos com muitas letras maiúsculas podem indicar conteúdo sensacionalista.',
-                categoria: 'formato',
-                nivel: 'basico',
-                icone: 'fa-exclamation-circle',
-                ordem: 1,
-                conteudoHTML: `
-                    <h3>Por que as maiúsculas são um sinal de alerta?</h3>
-                    <p>Textos com muitas LETRAS MAIÚSCULAS frequentemente indicam conteúdo sensacionalista ou de fake news. Essa é uma tática comum para chamar atenção e gerar reações emocionais.</p>
-                    <h3>O que observar:</h3>
-                    <ul>
-                        <li>Títulos completamente em maiúsculas</li>
-                        <li>Palavras-chave enfatizadas com CAPS LOCK</li>
-                        <li>Múltiplas exclamações ao final da frase!!!</li>
-                        <li>Uso excessivo de pontos de interrogação??????</li>
-                    </ul>
-                    <h3>Exemplos reais:</h3>
-                    <p><strong>Exemplo problemático:</strong><br>
-                    "VOCÊ NÃO VAI ACREDITAR NO QUE FAZEM ESCONDIDO!!! CLIQUE AGORA!!!"</p>
-                    <p><strong>Exemplo confiável:</strong><br>
-                    "Eleições municipais de 2024: principais candidatos anunciam propostas"</p>
-                    <h3>Como proteger-se:</h3>
-                    <ul>
-                        <li>Seja desconfiado de títulos em CAPS LOCK</li>
-                        <li>Procure a mesma notícia em fontes confiáveis</li>
-                        <li>Verifique se outras publicações respeitáveis reportam o mesmo fato</li>
-                        <li>Busque informações no site oficial da fonte</li>
-                    </ul>
-                `
-            },
-            {
-                lessonId: 'alarmista',
-                titulo: 'Palavras alarmistas e sensacionalistas',
-                descricao: 'Termos como "urgente" e "bomba" tentam provocar reação imediata.',
-                categoria: 'linguagem',
-                nivel: 'basico',
-                icone: 'fa-bell',
-                ordem: 2,
-                conteudoHTML: `
-                    <h3>O poder das palavras sensacionalistas</h3>
-                    <p>Fake news frequentemente usam palavras como "URGENTE", "BOMBA", "IMPACTANTE" e "REVELAÇÃO" para criar senso de imediatismo e urgência. Essas técnicas exploram a psicologia humana para gerar compartilhamentos impulsivos.</p>
-                    <h3>Palavras de alerta:</h3>
-                    <ul>
-                        <li>URGENTE / BREAKING NEWS</li>
-                        <li>BOMBA / EXPLOSIVO</li>
-                        <li>IMPACTANTE / CHOCANTE</li>
-                        <li>REVELAÇÃO / SECRETO</li>
-                        <li>VOCÊ NÃO SABIA</li>
-                        <li>MÉDICOS ODEIAM ESTE TRUQUE</li>
-                        <li>CONFIRA ANTES QUE REMOVAM</li>
-                    </ul>
-                    <h3>Por que funcionam?</h3>
-                    <p>Quando o cérebro sente urgência e emoção forte, tendemos a compartilhar ANTES de verificar. Isso é explorado pragmática e propositalmente por criadores de conteúdo sensacionalista.</p>
-                    <h3>Dica importante:</h3>
-                    <p>Se uma notícia é verdadeiramente importante e confiável, ela não precisa de palavras sensacionalistas para convencer você. Jornalismo sério deixa os fatos falarem por si.</p>
-                `
-            },
-            {
-                lessonId: 'fontes',
-                titulo: 'Verificando as fontes',
-                descricao: 'A origem da informação é uma das primeiras pistas de confiabilidade.',
-                categoria: 'verificacao',
-                nivel: 'intermediario',
-                icone: 'fa-link',
-                ordem: 3,
-                conteudoHTML: `
-                    <h3>A importância de verificar fontes</h3>
-                    <p>Uma das melhores formas de detectar fake news é verificar a origem da informação. Sempre procure a fonte original da notícia.</p>
-                    <h3>Passos para verificar:</h3>
-                    <ul>
-                        <li><strong>1. Encontre o link original:</strong> Clique no link da notícia e observe a URL</li>
-                        <li><strong>2. Verifique o domínio:</strong> É de um site de notícias conhecido e respeitável?</li>
-                        <li><strong>3. Pesquise a fonte:</strong> Busque "nome do site + críticas" ou "nome do site + confiável"</li>
-                        <li><strong>4. Procure em outro lugar:</strong> A mesma notícia aparece em outros jornais?</li>
-                        <li><strong>5. Veja se tem byline:</strong> Tem nome de jornalista e data clara?</li>
-                    </ul>
-                    <h3>Sinais de alerta em websites:</h3>
-                    <ul>
-                        <li>Muitos anúncios e pop-ups</li>
-                        <li>Conteúdo publicado sem assinatura clara</li>
-                        <li>Design amador ou descuidado</li>
-                        <li>Nenhuma página "Sobre Nós" ou de contato</li>
-                    </ul>
-                `
-            },
-            {
-                lessonId: 'contexto',
-                titulo: 'A importância do contexto',
-                descricao: 'Uma informação verdadeira pode ser distorcida quando aparece fora de contexto.',
-                categoria: 'analise',
-                nivel: 'intermediario',
-                icone: 'fa-building',
-                ordem: 4,
-                conteudoHTML: `
-                    <h3>Contexto removido = Desinformação</h3>
-                    <p>Muitas fake news removem informação de contexto para distorcer significado. Uma frase verdadeira pode virar mentira quando tirada do seu contexto original.</p>
-                    <h3>Exemplos comuns:</h3>
-                    <p><strong>Com contexto removido:</strong><br>
-                    "Prefeito desvia milhões em recursos"</p>
-                    <p><strong>Com contexto completo:</strong><br>
-                    "Prefeito nega denúncia de possível desvio; investigação ainda está em fase inicial"</p>
-                    <h3>Técnicas usadas:</h3>
-                    <ul>
-                        <li><strong>Cherry-picking:</strong> Selecionar apenas dados que apoiam uma conclusão</li>
-                        <li><strong>Truncamento:</strong> Cortar trechos importantes de um discurso</li>
-                        <li><strong>Recontextualização:</strong> Usar citação verdadeira em contexto falso</li>
-                        <li><strong>Omissão:</strong> Deixar de contar parte importante da história</li>
-                    </ul>
-                    <h3>Como se proteger:</h3>
-                    <ul>
-                        <li>Sempre leia a notícia completa</li>
-                        <li>Procure reportagens investigativas aprofundadas</li>
-                        <li>Verifique se a notícia tem comentários ou resposta da pessoa mencionada</li>
-                        <li>Busque perspectivas de múltiplas fontes</li>
-                        <li>Pergunte-se: "Que informação está sendo omitida?"</li>
-                    </ul>
-                `
-            },
-            {
-                lessonId: 'emocional',
-                titulo: 'Manipulação emocional',
-                descricao: 'Conteúdos falsos costumam explorar medo, raiva ou esperança para viralizar.',
-                categoria: 'psicologia',
-                nivel: 'avancado',
-                icone: 'fa-heart-pulse',
-                ordem: 5,
-                conteudoHTML: `
-                    <h3>Emoções como arma</h3>
-                    <p>Fake news frequentemente exploram emoções (raiva, medo, esperança) para fazer com que você compartilhe sem pensar. Isso é chamado de "emotional hijacking".</p>
-                    <h3>Emoções mais exploradas:</h3>
-                    <ul>
-                        <li><strong>Raiva:</strong> Notícias sobre injustiça ou abuso</li>
-                        <li><strong>Medo:</strong> Alertas sobre saúde, segurança ou economia</li>
-                        <li><strong>Esperança:</strong> Promessas de solução milagrosa</li>
-                        <li><strong>Surpresa:</strong> Revelações surpreendentes</li>
-                        <li><strong>Diversão:</strong> Memes e conteúdo "viral"</li>
-                    </ul>
-                    <h3>Como proteger-se:</h3>
-                    <ul>
-                        <li>Pause antes de compartilhar - sinta a emoção</li>
-                        <li>Faça a "regra de 24h": espere um dia antes de compartilhar</li>
-                        <li>Se a notícia deixa você muito furioso, é motivo para desconfiar</li>
-                        <li>Verifique os fatos antes de agir emocionalmente</li>
-                    </ul>
-                `
-            },
-            {
-                lessonId: 'midia',
-                titulo: 'Imagens manipuladas e deepfakes',
-                descricao: 'Fotos, vídeos e prints também podem ser editados ou tirados de contexto.',
-                categoria: 'midia',
-                nivel: 'avancado',
-                icone: 'fa-image',
-                ordem: 6,
-                conteudoHTML: `
-                    <h3>A tecnologia dos Deep Fakes</h3>
-                    <p>Imagens e vídeos são frequentemente manipulados ou tirados de contexto. Com avanços em inteligência artificial, agora é possível criar vídeos convincentes de pessoas dizendo coisas que nunca disseram.</p>
-                    <h3>Tipos de manipulação visual:</h3>
-                    <ul>
-                        <li><strong>Foto de contexto errado:</strong> Imagem real de outro evento/lugar</li>
-                        <li><strong>Imagem editada:</strong> Alteração de cores, faces ou elementos</li>
-                        <li><strong>Deep Fake:</strong> Vídeo sintetizado com IA</li>
-                        <li><strong>Screenshots de contexto falso:</strong> Prints manipulados de redes sociais</li>
-                    </ul>
-                    <h3>Como identificar imagens falsas:</h3>
-                    <ul>
-                        <li><strong>Pesquisa reversa:</strong> Clique direito → "Pesquisar imagem no Google"</li>
-                        <li><strong>Observe artefatos:</strong> Bordas pixeladas, iluminação inconsistente</li>
-                        <li><strong>Analise detalhes:</strong> Olhos, boca e cabelo em Deep Fakes</li>
-                        <li><strong>Verifique a fonte:</strong> De onde vem o arquivo original?</li>
-                    </ul>
-                `
-            }
-        ];
-        await ConteudoEdu.insertMany(licoes);
+        await ConteudoEdu.insertMany(lessons);
         console.log('🌱 Lições educativas iniciais inseridas no banco.');
     } catch (err) {
         console.error('❌ Erro no seed de lições:', err.message);
