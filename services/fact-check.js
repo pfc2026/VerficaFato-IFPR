@@ -1,7 +1,6 @@
 import { createHash } from 'node:crypto';
 import { TTLCache, createLimiter } from './limits.js';
 import { queryVariants, keywordQuery } from './claims.js';
-import { filterRelevantReviews, reviewIdentity } from './relevance.js';
 const ENDPOINT = 'https://factchecktools.googleapis.com/v1alpha1/claims:search';
 const cache = new TTLCache({ ttlMs: 10 * 60 * 1000, maxEntries: 500 });
 const limit = createLimiter(3, 30);
@@ -17,15 +16,14 @@ export function formatReviews(data) {
       const url = safeReviewUrl(review.url);
       if (!url || typeof review.textualRating !== 'string' || !review.publisher?.name) continue;
       const str = (v, size = 1000) => typeof v === 'string' ? v.slice(0,size) : '';
-      const record = {
+      results.push({
+        id: 'e' + createHash('sha256').update(url + '|' + claim.text + '|' + review.textualRating).digest('hex').slice(0,16),
         texto_verificado: claim.text, autor_alegacao: str(claim.claimant),
         data_alegacao: str(claim.claimDate), verificador: str(review.publisher.name,200),
         dominio_verificador: str(review.publisher.site,200), titulo_verificacao: str(review.title),
         avaliacao: str(review.textualRating,200), url_verificacao: url,
         data_verificacao: str(review.reviewDate,50), idioma: str(review.languageCode,30)
-      };
-      record.id = 'e' + createHash('sha256').update(reviewIdentity(record)).digest('hex').slice(0,16);
-      results.push(record);
+      });
     }
   }
   return results;
@@ -67,7 +65,7 @@ export function createFactChecker({ apiKey = process.env.GOOGLE_API_KEY, fetchIm
     if (!signal) pending.set(key,task);
     try { return await task; } finally { if (!signal) pending.delete(key); }
   }
-  return async function verificarNoticia(texto,{signal,content = texto}={}) {
+  return async function verificarNoticia(texto,{signal}={}) {
     if (!apiKey) return { encontrados:false,quantidade:0,resultados:[],apiDisponivel:false,estrategia:'não configurada',erroAPI:'Consulta Google não configurada no servidor.', status:'nao_configurada' };
     const results = new Map(); let errorCode = '', successful = 0;
     for (const query of queryVariants(texto)) {
@@ -75,7 +73,7 @@ export function createFactChecker({ apiKey = process.env.GOOGLE_API_KEY, fetchIm
       try { for (const review of await search(query,signal)) results.set(review.id,review); successful++; }
       catch (error) { errorCode = error.code || 'indisponivel'; break; }
     }
-    const resultados = filterRelevantReviews(texto,[...results.values()],{content}).slice(0,30);
+    const resultados = [...results.values()].slice(0,30);
     return { encontrados:resultados.length > 0,quantidade:resultados.length,resultados,apiDisponivel:!errorCode,
       estrategia:'afirmação e variações lexicais',palavrasChaveUsadas:keywordQuery(texto),
       status:errorCode || 'ok',erroAPI:errorCode ? (errorCode === 'quota' ? 'O limite da consulta Google foi atingido.' : 'A consulta Google está indisponível. A ausência de resultados não permite concluir a veracidade.') : undefined,

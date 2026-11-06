@@ -8,7 +8,6 @@ import { generateExplanation } from './explanation.js';
 import { HttpError } from './errors.js';
 import { createLimiter } from './limits.js';
 import { criarAnaliseVisual } from './verification-indicators.js';
-import { filterRelevantReviews, deduplicateReviews } from './relevance.js';
 
 const inputSchema = z.object({
   texto:z.string().trim().max(20000).optional(),link:z.string().trim().max(2048).optional(),
@@ -62,26 +61,18 @@ async function analyze(input,{
   if (omitted) limitations.push(omitted + ' trecho(s) foram omitidos por serem curtos, numéricos ou excederem oito afirmações/2.000 caracteres por afirmação; não foram verificados.');
   const [checks,regionalResult] = await Promise.all([
     Promise.all(facts.map(async claim => {
-      try {
-        const response = await check(claim.texto,{signal,content:text});
-        // External search is candidate retrieval. Filter at this boundary too so
-        // injected providers, cached results and all downstream consumers agree.
-        const resultados = filterRelevantReviews(claim.texto,response.resultados,{content:text});
-        return {id:claim.id,apiDisponivel:response.apiDisponivel,erroAPI:response.erroAPI,
-          status:response.status,resultados};
-      }
+      try { return {id:claim.id,...await check(claim.texto,{signal})}; }
       catch { return {id:claim.id,resultados:[],apiDisponivel:false,erroAPI:'A consulta Google falhou temporariamente.',status:'indisponivel'}; }
     })),
     buscarRegionais ? Promise.resolve().then(()=>buscarRegionais(text,noticia.url)).then(safeNews).catch(()=>{limitations.push('O acervo regional não pôde ser consultado.');return [];}) : Promise.resolve([])
   ]);
-  const reviews = deduplicateReviews(checks.flatMap(c=>c.resultados || [])).slice(0,60);
+  const reviews = [...new Map(checks.flatMap(c=>c.resultados || []).map(r=>[r.id,r])).values()].slice(0,60);
   let language;
   try { language = await nlp(text,claims,reviews); }
   catch { language={indicadores:languageIndicators(text),tensorflow:{disponivel:false,metodo:'indisponível',modelo:null,limitacoes:['TensorFlow.js não pôde ser carregado.']},comparacoes:[]}; }
   limitations.push(...(language.tensorflow?.limitacoes || []));
   if (checks.some(c=>!c.apiDisponivel)) limitations.push(...new Set(checks.filter(c=>!c.apiDisponivel).map(c=>c.erroAPI || 'A consulta Google não foi concluída.')));
   if (regionalResult.length) limitations.push('Notícias do acervo regional são referências de contexto, sem confirmar automaticamente a afirmação.');
-  if (!reviews.length) limitations.push('Não foi encontrada checagem tematicamente pertinente às afirmações consultadas. Resultados apenas do mesmo veículo ou sobre outros assuntos foram descartados. Isso não confirma nem desmente o conteúdo.');
   const afirmacoes = claims.map(claim=>{
     const checkResult = checks.find(c=>c.id === claim.id);
     const evaluated = evaluateClaim(claim,checkResult?.resultados || [],language.comparacoes);
