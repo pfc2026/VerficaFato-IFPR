@@ -1,0 +1,83 @@
+{
+  "publicationUrl": "https://noticias.example.org/ciencia/domo",
+  "boilerplate": "O Jornal Horizonte Verifica investigou e concluiu que: é falso.",
+  "domeClaim": "Um vídeo mostra um domo gigante sobre a Terra plana produzido por inteligência artificial.",
+  "domeContext": "O Jornal Horizonte Verifica investigou e concluiu que: é falso. Um vídeo mostra um domo gigante sobre a Terra plana produzido por inteligência artificial. A animação do domo foi criada digitalmente, sem registro de uma estrutura física.",
+  "politicalClaim": "As urnas eletrônicas registraram votos para um candidato antes da votação.",
+  "publisherClaim": "O Jornal Horizonte recebeu dinheiro público para financiar uma campanha de desinformação.",
+  "googleResponse": {
+    "claims": [
+      {
+        "text": "Um vídeo mostra um domo gigante sobre a Terra plana produzido por inteligência artificial.",
+        "claimant": "Publicação em rede social",
+        "claimDate": "2025-04-12T00:00:00Z",
+        "claimReview": [
+          {
+            "publisher": { "name": "Jornal Horizonte Verifica", "site": "noticias.example.org" },
+            "url": "https://noticias.example.org/checagem/domo-artificial",
+            "title": "Vídeo de domo sobre a Terra plana é uma criação digital",
+            "textualRating": "Falso",
+            "reviewDate": "2025-04-15T12:00:00Z",
+            "languageCode": "pt-BR"
+          }
+        ]
+      },
+      {
+        "text": "As urnas eletrônicas registraram votos para um candidato antes da votação.",
+        "claimant": "Mensagem eleitoral",
+        "claimDate": "2025-03-10T00:00:00Z",
+        "claimReview": [
+          {
+            "publisher": { "name": "Jornal Horizonte Verifica", "site": "noticias.example.org" },
+            "url": "https://noticias.example.org/checagem/urnas",
+            "title": "Verifica investigou mensagem sobre urnas eletrônicas",
+            "textualRating": "Falso",
+            "reviewDate": "2025-03-12T12:00:00Z",
+            "languageCode": "pt-BR"
+          }
+        ]
+      },
+      {
+        "text": "O ministro Roberto assinou uma decisão sobre pesquisa eleitoral em Brasília.",
+        "claimant": "Autor de um vídeo político",
+        "claimReview": [
+          {
+            "publisher": { "name": "Jornal Horizonte Verifica", "site": "noticias.example.org" },
+            "url": "https://noticias.example.org/checagem/pesquisa-eleitoral",
+            "title": "O Jornal Horizonte investigou e concluiu que a notícia é falsa",
+            "textualRating": "Falso",
+            "reviewDate": "2025-02-22T12:00:00Z",
+            "languageCode": "pt-BR"
+          }
+        ]
+      },
+      {
+        "text": "O presidente Miguel anunciou aumento no preço dos combustíveis.",
+        "claimReview": [
+          {
+            "publisher": { "name": "Jornal Horizonte Verifica", "site": "noticias.example.org" },
+            "url": "https://noticias.example.org/checagem/combustiveis",
+            "title": "É falso: reportagem do Jornal Horizonte sobre o presidente",
+            "textualRating": "Falso",
+            "reviewDate": "2025-01-20T12:00:00Z",
+            "languageCode": "pt-BR"
+          }
+        ]
+      },
+      {
+        "text": "O Jornal Horizonte recebeu dinheiro público para financiar uma campanha de desinformação.",
+        "claimant": "Autor da acusação sobre o jornal",
+        "claimReview": [
+          {
+            "publisher": { "name": "Agência de Checagem", "site": "agencia.example.org" },
+            "url": "https://agencia.example.org/checagem/jornal-financiamento",
+            "title": "Checagem da acusação de financiamento do Jornal Horizonte",
+            "textualRating": "Sem comprovação",
+            "reviewDate": "2025-05-20T12:00:00Z",
+            "languageCode": "pt-BR"
+          }
+        ]
+      }
+    ]
+  }
+}

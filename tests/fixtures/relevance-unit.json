@@ -1,0 +1,21 @@
+{
+  "space": "Uma sonda espacial encontrou uma estrutura artificial na superfície de Marte.",
+  "election": "As urnas eletrônicas registraram votos antes da abertura da eleição municipal.",
+  "publisher": "O Jornal Aurora recebeu dinheiro público para financiar propaganda eleitoral.",
+  "boilerplate": [
+    "O Jornal Aurora Verifica investigou e concluiu que: é falso.",
+    "A Folha do Vale verificou esta informação.",
+    "A Agência Observatório apurou e concluiu: falso!",
+    "Leia a reportagem completa.",
+    "Saiba mais sobre esta notícia.",
+    "A equipe checou os fatos e concluiu que essa notícia é falsa."
+  ],
+  "contextClaim": "A prefeita Marina inaugurou uma escola em Curitiba em 2024.",
+  "contextChanges": [
+    "A prefeita Renata inaugurou uma escola em Curitiba em 2024.",
+    "A prefeita Marina inaugurou uma escola em Londrina em 2024.",
+    "A prefeita Marina inaugurou uma escola em Curitiba em 2023.",
+    "A prefeita Marina não inaugurou uma escola em Curitiba em 2024.",
+    "A prefeita Marina inaugurou uma escola em Curitiba em 2024 durante uma simulação."
+  ]
+}

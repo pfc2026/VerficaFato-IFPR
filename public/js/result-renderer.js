@@ -243,8 +243,8 @@ function reviewResults(data) {
   const reviews=list(data.resultados);
   if(!reviews.length){
     const warning=styled(panel('fact-check-status'),{background:data.apiDisponivel===false?'rgba(231,76,60,.1)':'rgba(243,156,18,.1)',borderColor:data.apiDisponivel===false?'rgba(231,76,60,.3)':'rgba(243,156,18,.3)'});
-    heading(warning,data.apiDisponivel===false?'A consulta ao Google Fact Check não pôde ser concluída':'Nenhuma verificação externa indexada encontrada',data.apiDisponivel===false?'fa-cloud-slash me-2':'fa-circle-info me-2');
-    paragraph(warning,data.apiDisponivel===false?(text(data.erroAPI)||'A consulta está temporariamente indisponível.'):'A Google Fact Check API pesquisa checagens já publicadas. Não encontrar resultados não confirma nem nega a veracidade do conteúdo.','small mb-0');
+    heading(warning,data.apiDisponivel===false?'A consulta ao Google Fact Check não pôde ser concluída':'Nenhuma checagem pertinente encontrada',data.apiDisponivel===false?'fa-cloud-slash me-2':'fa-circle-info me-2');
+    paragraph(warning,data.apiDisponivel===false?(text(data.erroAPI)||'A consulta está temporariamente indisponível.'):'Não foi encontrada uma checagem sobre as afirmações consultadas. Publicações do mesmo veículo sobre outros assuntos são descartadas. Essa ausência não confirma nem nega a veracidade do conteúdo.','small mb-0');
     if(data.palavrasChaveUsadas)paragraph(warning,'Termos pesquisados: '+text(data.palavrasChaveUsadas),'small mt-2 mb-0');
     return warning;
   }
