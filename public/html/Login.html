@@ -4,6 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Entrar / Cadastrar — VerificaFato</title>
+    <meta name="robots" content="noindex, follow">
+    <meta name="referrer" content="no-referrer">
     <link rel="icon" type="image/png" href="/html/img/Logo%20oficial.png">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
@@ -76,7 +78,7 @@
             transform: translateY(-50%); opacity: 0.5; font-size: 0.9rem;
         }
         .field-auth input {
-            width: 100%; padding: 0.75rem 1rem 0.75rem 2.5rem;
+            width: 100%; padding: 0.75rem 3rem 0.75rem 2.5rem;
             background: rgba(255,255,255,0.1) !important;
             border: 1px solid var(--border) !important;
             border-radius: 10px !important;
@@ -116,12 +118,13 @@
         .back-home:hover { opacity: 1; }
 
         .pwd-toggle {
-            position: absolute; right: 0.9rem; top: 50%;
+            position: absolute; right: 0.2rem; top: 50%;
             transform: translateY(-50%);
             background: none; border: none;
             color: var(--text-muted); cursor: pointer;
-            padding: 0; font-size: 0.85rem;
+            padding: 0; font-size: 0.85rem; width: 44px; height: 44px;
         }
+        .field-auth .input-icon-wrap .pwd-toggle i { position: static; transform: none; opacity: 1; }
     </style>
 </head>
 <body>
@@ -143,7 +146,7 @@
                 <p>Combatendo a desinformação</p>
             </div>
 
-            <div class="auth-tabs" role="tablist">
+            <div class="auth-tabs" role="group" aria-label="Acesso à conta">
                 <button class="auth-tab-btn active" id="tabEntrar" data-login-tab="entrar">
                     <i class="fas fa-sign-in-alt me-1"></i> Entrar
                 </button>
@@ -154,7 +157,7 @@
 
             <!-- ── ENTRAR ── -->
             <div id="panelEntrar" class="form-panel active">
-                <div id="msgEntrar" class="msg-box"></div>
+                <div id="msgEntrar" class="msg-box" role="status" aria-live="polite"></div>
                 <div class="field-auth">
                     <label for="loginEmail">E-mail</label>
                     <div class="input-icon-wrap">
@@ -167,20 +170,21 @@
                     <div class="input-icon-wrap">
                         <i class="fas fa-lock"></i>
                         <input type="password" id="loginSenha" placeholder="••••••••" autocomplete="current-password">
-                        <button type="button" class="pwd-toggle" data-toggle-password="loginSenha"><i class="fas fa-eye"></i></button>
+                        <button type="button" class="pwd-toggle" data-toggle-password="loginSenha" aria-label="Mostrar senha" aria-controls="loginSenha" aria-pressed="false"><i class="fas fa-eye" aria-hidden="true"></i></button>
                     </div>
                 </div>
                 <button class="btn-auth" id="btnEntrar">
                     <span class="btn-text"><i class="fas fa-sign-in-alt me-2"></i>Entrar</span>
                     <span class="d-none spinner-border spinner-border-sm" id="spinEntrar"></span>
                 </button>
+                <p class="text-center mt-3"><a href="#recuperar" data-login-tab="recuperar">Esqueci minha senha</a></p>
                 <p class="divider">— ou —</p>
                 <p style="text-align:center;font-size:0.85rem;opacity:0.7">Não tem conta? <a href="#" data-login-tab="cadastrar" style="color:#27AE60;font-weight:600">Cadastre-se grátis</a></p>
             </div>
 
             <!-- ── CADASTRAR ── -->
             <div id="panelCadastrar" class="form-panel">
-                <div id="msgCadastrar" class="msg-box"></div>
+                <div id="msgCadastrar" class="msg-box" role="status" aria-live="polite"></div>
                 <div class="field-auth">
                     <label for="cadNome">Nome completo</label>
                     <div class="input-icon-wrap">
@@ -203,19 +207,19 @@
                     </div>
                 </div>
                 <div class="field-auth">
-                    <label for="cadSenha">Senha <span style="font-weight:400;opacity:0.6;font-size:0.8rem">(mín. 6 caracteres)</span></label>
+                    <label for="cadSenha">Senha <span style="font-weight:400;opacity:0.6;font-size:0.8rem">(mín. 12 caracteres; máx. 72 bytes)</span></label>
                     <div class="input-icon-wrap">
                         <i class="fas fa-lock"></i>
-                        <input type="password" id="cadSenha" placeholder="••••••••" autocomplete="new-password">
-                        <button type="button" class="pwd-toggle" data-toggle-password="cadSenha"><i class="fas fa-eye"></i></button>
+                        <input type="password" id="cadSenha" placeholder="Pelo menos 12 caracteres" autocomplete="new-password" minlength="12" maxlength="72" required>
+                        <button type="button" class="pwd-toggle" data-toggle-password="cadSenha" aria-label="Mostrar senha" aria-controls="cadSenha" aria-pressed="false"><i class="fas fa-eye" aria-hidden="true"></i></button>
                     </div>
                 </div>
                 <div class="field-auth">
                     <label for="cadSenha2">Confirmar senha</label>
                     <div class="input-icon-wrap">
                         <i class="fas fa-lock"></i>
-                        <input type="password" id="cadSenha2" placeholder="••••••••" autocomplete="new-password">
-                        <button type="button" class="pwd-toggle" data-toggle-password="cadSenha2"><i class="fas fa-eye"></i></button>
+                        <input type="password" id="cadSenha2" placeholder="Repita a senha" autocomplete="new-password" minlength="12" maxlength="72" required>
+                        <button type="button" class="pwd-toggle" data-toggle-password="cadSenha2" aria-label="Mostrar senha" aria-controls="cadSenha2" aria-pressed="false"><i class="fas fa-eye" aria-hidden="true"></i></button>
                     </div>
                 </div>
                 <button class="btn-auth" id="btnCadastrar">
@@ -226,7 +230,26 @@
                 <p style="text-align:center;font-size:0.85rem;opacity:0.7">Já tem conta? <a href="#" data-login-tab="entrar" style="color:#27AE60;font-weight:600">Entrar</a></p>
             </div>
 
+            <div id="panelRecuperar" class="form-panel">
+                <h2 class="h5">Recuperar senha</h2>
+                <p class="small">Informe o e-mail da sua conta. Você receberá um link de uso único, válido por 30 minutos. Confira também a caixa de spam.</p>
+                <div id="msgRecuperar" class="msg-box" role="status" aria-live="polite"></div>
+                <div class="field-auth"><label for="recEmail">E-mail da conta</label><div class="input-icon-wrap"><i class="fas fa-envelope" aria-hidden="true"></i><input type="email" id="recEmail" autocomplete="email" placeholder="seu@email.com" required></div></div>
+                <button type="button" class="btn-auth" id="btnRecuperar"><span class="btn-text">Enviar link de recuperação</span><span class="d-none spinner-border spinner-border-sm" id="spinRecuperar" aria-hidden="true"></span></button>
+                <p class="text-center mt-3"><a href="#entrar" data-login-tab="entrar">Voltar para entrar</a></p>
+            </div>
+            <div id="panelRedefinir" class="form-panel">
+                <h2 class="h5">Escolha uma nova senha</h2>
+                <p class="small" id="resetPasswordHelp">Use pelo menos 12 caracteres e até 72 bytes. Ao redefinir, as sessões anteriores serão encerradas.</p>
+                <div id="msgRedefinir" class="msg-box" role="status" aria-live="polite"></div>
+                <div class="field-auth"><label for="resetSenha">Nova senha</label><div class="input-icon-wrap"><i class="fas fa-lock" aria-hidden="true"></i><input type="password" id="resetSenha" autocomplete="new-password" minlength="12" maxlength="72" aria-describedby="resetPasswordHelp" required><button type="button" class="pwd-toggle" data-toggle-password="resetSenha" aria-label="Mostrar senha" aria-controls="resetSenha" aria-pressed="false"><i class="fas fa-eye" aria-hidden="true"></i></button></div></div>
+                <div class="field-auth"><label for="resetSenha2">Confirmar nova senha</label><div class="input-icon-wrap"><i class="fas fa-lock" aria-hidden="true"></i><input type="password" id="resetSenha2" autocomplete="new-password" minlength="12" maxlength="72" required><button type="button" class="pwd-toggle" data-toggle-password="resetSenha2" aria-label="Mostrar senha" aria-controls="resetSenha2" aria-pressed="false"><i class="fas fa-eye" aria-hidden="true"></i></button></div></div>
+                <button type="button" class="btn-auth" id="btnRedefinir"><span class="btn-text">Salvar nova senha</span><span class="d-none spinner-border spinner-border-sm" id="spinRedefinir" aria-hidden="true"></span></button>
+                <p class="text-center mt-3"><a href="#recuperar" data-login-tab="recuperar">Solicitar outro link</a></p>
+            </div>
+            <p class="small text-center mt-4">Ao criar sua conta, conheça o <a href="/html/Privacidade.html">uso dos seus dados</a>.</p>
             <a href="/" class="back-home"><i class="fas fa-arrow-left me-1"></i> Voltar à verificação</a>
+            <p class="small text-center mt-3"><a href="/html/Privacidade.html#responsaveis">Responsáveis e contato</a></p>
         </div>
     </div>
 

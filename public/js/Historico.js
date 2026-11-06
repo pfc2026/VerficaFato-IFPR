@@ -1,5 +1,6 @@
 import { element, button, showNotice, getStoredUser } from './safe-dom.js';
-import { renderAnalysis, resultBadge, resultLabel } from './result-renderer.js';
+import { renderAnalysis, resultBadge } from './result-renderer.js';
+import { shareSite } from './share.js';
 import { mostrarModalPerfil } from './account.js';
 const showAlert = showNotice;
 let itemsHistorico = [];
@@ -82,11 +83,8 @@ function verDetalhes(index) {
   if (!item) return;
   renderAnalysis(document.getElementById('modalContent'), item);
   const share = document.getElementById('shareBtn');
-  if (share) share.onclick = () => {
-    const data = {title:'VerificaFato',text:'Consulta no VerificaFato: ' + resultLabel(item),url:window.location.origin};
-    if (navigator.share) navigator.share(data).catch(() => {});
-    else navigator.clipboard?.writeText(data.url).then(() => showNotice('Link copiado!', 'success')).catch(() => showNotice('Não foi possível copiar.', 'danger'));
-  };
+  document.getElementById('shareStatus').textContent = '';
+  if (share) share.onclick = () => shareSite();
   bootstrap.Modal.getOrCreateInstance(document.getElementById('resultsModal')).show();
 }
 async function excluirItem(id) {

@@ -1,5 +1,9 @@
 {
   "version": 2,
+  "installCommand": "npm ci",
+  "env": {
+    "NODE_OPTIONS": "--experimental-require-module"
+  },
   "builds": [
     {
       "src": "api/index.js",

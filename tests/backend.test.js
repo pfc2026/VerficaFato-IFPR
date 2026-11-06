@@ -182,7 +182,53 @@ test('Vercel HTTPS forwarding preserves same-origin requests', async t => {
   t.after(() => { if (saved === undefined) delete process.env.VERCEL; else process.env.VERCEL = saved; });
   const request = await http(t);
   const response = await request('/api/status', { headers: { Origin: request.baseUrl.replace('http:', 'https:'), 'X-Forwarded-Proto': 'https' } });
+  assert.equal(response.status, 503);
+});
+
+test('status separately reports missing authentication configuration and optional integrations', async t => {
+  const saved = { JWT_SECRET: process.env.JWT_SECRET, GOOGLE_API_KEY: process.env.GOOGLE_API_KEY, ENABLE_AI_EXPLANATION: process.env.ENABLE_AI_EXPLANATION };
+  t.after(() => { for (const [key, value] of Object.entries(saved)) { if (value === undefined) delete process.env[key]; else process.env[key] = value; } });
+  delete process.env.JWT_SECRET;
+  delete process.env.GOOGLE_API_KEY;
+  process.env.ENABLE_AI_EXPLANATION = 'false';
+  const request = await http(t, { dbReady: () => true });
+  let response = await request('/api/status');
+  assert.equal(response.status, 503);
+  assert.equal(response.headers.get('cache-control'), 'no-store');
+  let status = await response.json();
+  assert.equal(status.status, 'degradado');
+  assert.equal(status.servicos.banco.status, 'pronto');
+  assert.equal(status.servicos.autenticacao.status, 'indisponivel');
+  assert.equal(status.servicos.checagensGoogle.status, 'desativado');
+  assert.equal(status.servicos.comentarioIA.status, 'desativado');
+  process.env.JWT_SECRET = saved.JWT_SECRET;
+  response = await request('/api/status');
   assert.equal(response.status, 200);
+  status = await response.json();
+  assert.equal(status.status, 'ok');
+  assert.equal(status.servicos.autenticacao.status, 'pronto');
+  assert.doesNotMatch(JSON.stringify(status), /backend-tests-only|JWT_SECRET|MONGO_URI|API_KEY/);
+});
+
+test('unknown documents return real 404 and indexing routes return their correct content types', async t => {
+  const request = await http(t);
+  for (const route of ['/pagina-que-nao-existe', '/arquivo.js', '/html/inexistente.html']) {
+    const response = await request(route);
+    assert.equal(response.status, 404);
+    assert.match(await response.text(), /Página não encontrada/);
+  }
+  assert.equal((await request('/')).status, 200);
+  const robots = await request('/robots.txt');
+  assert.equal(robots.status, 200);
+  assert.match(robots.headers.get('content-type'), /^text\/plain/);
+  assert.match(await robots.text(), /Sitemap: https:\/\/verfica-fato-ifpr.vercel.app\/sitemap.xml/);
+  const sitemap = await request('/sitemap.xml');
+  assert.equal(sitemap.status, 200);
+  assert.match(sitemap.headers.get('content-type'), /^application\/xml/);
+  const xml = await sitemap.text();
+  assert.match(xml, /<urlset xmlns="http:\/\/www.sitemaps.org\/schemas\/sitemap\/0.9">/);
+  assert.match(xml, /<loc>https:\/\/verfica-fato-ifpr.vercel.app\/html\/Privacidade.html<\/loc>/);
+  assert.doesNotMatch(xml, /Login|Historico|Admin/);
 });
 test('aggregated metrics require admin access and contain no user data', async t => {
   const user = baseUser(); mockUser(t, user);

@@ -95,17 +95,18 @@ export async function generateExplanation(result,{
 } = {}) {
   const sections = localSections(result);
   const validProvider = ['gemini','openai'].includes(provider);
-  const fallback = motivo => ({
+  const fallback = (motivo, estado = 'indisponivel') => ({
     secoes:sections,
-    geracao:{status:'local',provedor:validProvider ? provider : null,metodo:'explicação ancorada nas evidências',motivo},
+    geracao:{status:'local',estado,provedor:validProvider ? provider : null,metodo:'explicação ancorada nas evidências',motivo},
     feedbackGemini:{
-      texto:provider === 'gemini' ? 'O Gemini não pôde gerar um comentário nesta tentativa. A verificação acima continua disponível. Confira o contexto e as fontes originais antes de compartilhar.' :
+      texto:estado === 'desativado' ? 'O comentário por IA está desativado nesta versão. A análise de linguagem e a busca de checagens Google são recursos separados e continuam disponíveis conforme a configuração do serviço.' : provider === 'gemini' ? 'O Gemini não pôde gerar um comentário nesta tentativa. A verificação acima continua disponível. Confira o contexto e as fontes originais antes de compartilhar.' :
         'O comentário da IA não está disponível nesta tentativa. A verificação acima continua disponível. Confira o contexto e as fontes originais antes de compartilhar.',
-      status:'local',provedor:validProvider ? provider : null,modelo:typeof model === 'string' ? model : null,referencias:[]
+      status:'local',estado,provedor:validProvider ? provider : null,modelo:typeof model === 'string' ? model : null,referencias:[]
     }
   });
-  if (!validProvider) return fallback('Provedor de IA não reconhecido. Configure AI_PROVIDER como gemini ou openai.');
-  if (!enabled || !apiKey || !model) return fallback('IA opcional não configurada.');
+  if (!enabled) return fallback('IA opcional não configurada.', 'desativado');
+  if (!validProvider) return fallback('Provedor de IA não reconhecido. Configure AI_PROVIDER como gemini ou openai.', 'desativado');
+  if (!apiKey || !model) return fallback('IA opcional não configurada.', 'desativado');
   const summaries = [sections.resumo, 'A análise examinou ' + result.afirmacoes.length + ' trecho(s). ' + sections.resumo];
   const guidance = [sections.orientacao, sections.orientacao + ' Evite compartilhar uma conclusão diferente daquela sustentada pelas fontes.'];
   const ids = result.afirmacoes.map(a => a.id);

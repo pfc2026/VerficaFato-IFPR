@@ -1,4 +1,6 @@
 import { element, appendSafeLink } from './safe-dom.js';
+import { lessons } from './education-content.js';
+import { recommendedLessons, isLessonAvailable } from './education.js';
 
 const list = value => Array.isArray(value) ? value : [];
 const text = value => typeof value === 'string' ? value : '';
@@ -6,6 +8,13 @@ const FACTUAL = new Set(['Verdadeiro','Falso','Parcialmente verdadeiro','Enganos
 const COLORS = { green:'#27AE60', yellow:'#F39C12', orange:'#E67E22', red:'#E74C3C', blue:'#3498DB' };
 const percent = value => typeof value === 'number' && Number.isFinite(value) ? Math.max(0,Math.min(100,Math.round(value))) : null;
 const count = value => typeof value === 'number' && Number.isFinite(value) ? Math.max(0,Math.floor(value)) : 0;
+const regionalNames = { g1_parana: 'G1 Paraná', o_parana: 'Jornal O Paraná', gazeta_do_povo: 'Gazeta do Povo', jornal_de_toledo: 'Jornal de Toledo', radio_colmeia: 'Rádio Colmeia (Cascavel)', radio_cultura_toledo: 'Rádio Cultura Toledo' };
+function publicationDate(value) {
+  const original = text(value);
+  if (!/^\d{4}-\d{2}-\d{2}(?:T.*)?$/.test(original)) return original;
+  const date = new Date(original);
+  return Number.isNaN(date.getTime()) ? '' : date.toLocaleDateString('pt-BR', { timeZone: 'UTC' });
+}
 function styled(node, style) { Object.assign(node.style,style); return node; }
 function icon(name,color) {
   const node=element('i','fas '+name);
@@ -32,12 +41,12 @@ function panel(className='') {
   });
 }
 function visualVerdict(pct) {
-  if(pct === null)return {cor:COLORS.yellow,bg:'rgba(243,156,18,0.15)',label:'Inconclusivo / Verificar',icone:'fa-circle-question'};
-  if(pct>=75)return {cor:COLORS.green,bg:'rgba(39,174,96,0.15)',label:'Provavelmente Verdadeira',icone:'fa-circle-check'};
-  if(pct>=55)return {cor:'#7DCB7A',bg:'rgba(125,203,122,0.15)',label:'Tende a ser verdadeira',icone:'fa-circle-check'};
-  if(pct>=40)return {cor:COLORS.yellow,bg:'rgba(243,156,18,0.15)',label:'Inconclusivo / Verificar',icone:'fa-circle-question'};
-  if(pct>=20)return {cor:COLORS.orange,bg:'rgba(230,126,34,0.15)',label:'Tende a ser falsa',icone:'fa-triangle-exclamation'};
-  return {cor:COLORS.red,bg:'rgba(231,76,60,0.15)',label:'Provavelmente Falsa',icone:'fa-circle-xmark'};
+  if(pct === null)return {cor:COLORS.yellow,bg:'rgba(243,156,18,0.15)',label:'Indicadores indisponíveis',icone:'fa-circle-question'};
+  if(pct>=75)return {cor:COLORS.green,bg:'rgba(39,174,96,0.15)',label:'Mais referências e sinais formais',icone:'fa-chart-simple'};
+  if(pct>=55)return {cor:'#7DCB7A',bg:'rgba(125,203,122,0.15)',label:'Alguns sinais formais no texto',icone:'fa-chart-simple'};
+  if(pct>=40)return {cor:COLORS.yellow,bg:'rgba(243,156,18,0.15)',label:'Padrões mistos no texto',icone:'fa-chart-simple'};
+  if(pct>=20)return {cor:COLORS.orange,bg:'rgba(230,126,34,0.15)',label:'Padrões que pedem atenção',icone:'fa-triangle-exclamation'};
+  return {cor:COLORS.red,bg:'rgba(231,76,60,0.15)',label:'Mais padrões de alerta',icone:'fa-triangle-exclamation'};
 }
 export function normalizeResult(record={}) {
   const source=record&&typeof record==='object'?record:{};
@@ -57,25 +66,24 @@ function getVisual(data) {
   const verdict=visualVerdict(pct);
   return {
     ...visual,porcentagem:pct,
-    veredito:text(visual.veredito)||verdict.label,
+    veredito:verdict.label,
     texto:text(visual.texto)||text(data.texto)||text(data.resumo),
     analiseLocal:visual.analiseLocal||data.analiseLocal||{},
     dimensoes:visual.dimensoes||data.dimensoes||{},
-    explicacao:text(visual.explicacao)||text(data.justificativa)||'Os indicadores de linguagem não permitem verificar a afirmação por conta própria.',
+    explicacao:'O índice reúne sinais automáticos de linguagem, estrutura e referências. Um valor alto não confirma a mensagem; um valor baixo não prova que ela é falsa. A conclusão factual depende das evidências.',
     palette:verdict
   };
 }
 export function resultLabel(record) {
   const data=normalizeResult(record);
   if(data.legado)return 'Registro legado';
-  if(data.analiseVisual)return getVisual(data).veredito;
   return FACTUAL.has(data.veredito)?data.veredito:'Sem evidências suficientes';
 }
 export function resultBadge(record) {
   const data=normalizeResult(record),visual=getVisual(data);
   const badge=element('span','badge badge-veredito',resultLabel(data));
   if(data.legado)badge.classList.add('bg-secondary');
-  else styled(badge,{background:visual.palette.bg,color:visual.palette.cor,border:'1px solid '+visual.palette.cor+'44'});
+  else badge.classList.add('bg-secondary');
   return badge;
 }
 function header(data,visual) {
@@ -85,12 +93,7 @@ function header(data,visual) {
   else if(data.apiDisponivel===false)tag('Google indisponível','bg-warning text-dark fs-6','fa-cloud-slash me-1');
   else if(list(data.resultados).length){tag('Verificações encontradas','bg-success fs-6','fa-check-circle me-1');tag(list(data.resultados).length+' resultado(s)','bg-secondary');}
   else tag('Análise local aplicada','bg-warning text-dark fs-6','fa-magnifying-glass me-1');
-  const confidence={
-    alta:{cor:COLORS.green,label:'Confiança alta'},
-    'média':{cor:COLORS.yellow,label:'Confiança média'},
-    baixa:{cor:COLORS.orange,label:'Confiança baixa'}
-  };
-  const info=Object.hasOwn(confidence,visual.confianca)?confidence[visual.confianca]:confidence.baixa;
+  const info={cor:COLORS.blue,label:'Análise automática'};
   const badge=styled(element('span','badge'),{background:info.cor+'22',color:info.cor,border:'1px solid '+info.cor+'55'});
   badge.append(icon('fa-gauge-high me-1'),document.createTextNode(info.label));
   row.append(badge);
@@ -103,7 +106,7 @@ function meter(visual,data) {
   const left=element('div');
   const title=element('div','d-flex align-items-center gap-2 mb-1');
   title.append(icon(v.icone+' fs-4',v.cor),styled(element('span','fw-bold fs-5',data.legado?'Registro legado':visual.veredito),{color:v.cor}));
-  left.append(title,styled(element('small','',visual.fonte==='api'?'Baseado em checagens publicadas e padrões do texto':'Baseado em análise de padrões do texto'),{opacity:'0.7'}));
+  left.append(title,styled(element('small','','Indicadores de linguagem · não são uma conclusão factual'),{opacity:'0.8'}));
   const ring=styled(element('div','percentage-circle'),{
     width:'90px',height:'90px',borderRadius:'50%',
     background:'conic-gradient('+v.cor+' '+((visual.porcentagem??0)*3.6)+'deg, rgba(255,255,255,0.1) 0deg)',
@@ -121,7 +124,7 @@ function meter(visual,data) {
   scale.append(element('span','','Mais alertas'),element('span','','Incerto'),element('span','','Mais sinais positivos'));card.append(scale);
   const explanation=styled(element('div','d-flex gap-2 align-items-start pt-2'),{borderTop:'1px solid '+v.cor+'22'});
   explanation.append(icon('fa-circle-info mt-1',v.cor),styled(element('small','meter-explanation',data.legado?data.justificativa:visual.explicacao),{opacity:'0.85',whiteSpace:'pre-line'}));card.append(explanation);
-  card.append(element('small','heuristic-disclaimer d-block mt-2','Índice heurístico de padrões; não representa probabilidade de veracidade.'));
+  card.append(element('small','heuristic-disclaimer d-block mt-2','Índice de padrões; não representa probabilidade de veracidade.'));
   return card;
 }
 function regional(data) {
@@ -132,7 +135,7 @@ function regional(data) {
   items.forEach(item=>{
     const card=styled(element('article','p-2 mb-2'),{background:'rgba(0,0,0,0.2)',borderRadius:'10px',borderLeft:'4px solid '+COLORS.green});
     paragraph(card,text(item.titulo),'fw-semibold mb-1');
-    paragraph(card,[text(item.fonte),text(item.data_publicacao)].filter(Boolean).join(' · '),'small mb-1');
+    paragraph(card,[Object.hasOwn(regionalNames, item.fonte) ? regionalNames[item.fonte] : text(item.fonte),publicationDate(item.data_publicacao)].filter(Boolean).join(' · '),'small mb-1');
     paragraph(card,text(item.texto),'small mb-2');
     appendSafeLink(card,item.url,'Ler reportagem completa no portal','btn btn-sm btn-outline-success');
     section.append(card);
@@ -150,7 +153,7 @@ function metrics(visual,data) {
   });return row;
 }
 function overview(dimensions) {
-  const entries=[['sensacionalismo','Sensacionalismo','fa-bullhorn',COLORS.orange],['fonte','Qualidade da fonte','fa-link',COLORS.green],['estrutura','Completude do texto','fa-file-lines',COLORS.blue]];
+  const entries=[['sensacionalismo','Sensacionalismo','fa-bullhorn',COLORS.orange],['fonte','Referências citadas no texto','fa-link',COLORS.green],['estrutura','Completude do texto','fa-file-lines',COLORS.blue]];
   if(!entries.some(([key])=>dimensions[key]&&typeof dimensions[key]==='object'))return null;
   const section=element('section','analysis-overview mb-3');
   const top=element('div','d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3');
@@ -167,7 +170,8 @@ function overview(dimensions) {
     line.append(label,styled(element('strong','',(score??0)+'/100'),{color}));card.append(line);
     const progress=element('div','progress analysis-progress mb-2');progress.setAttribute('role','progressbar');progress.setAttribute('aria-label',title);progress.setAttribute('aria-valuenow',String(score??0));progress.setAttribute('aria-valuemin','0');progress.setAttribute('aria-valuemax','100');
     progress.append(styled(element('div','progress-bar'),{width:(score??0)+'%',background:color}));card.append(progress);
-    card.append(element('span','analysis-level',text(item.nivel)),element('small','',text(item.descricao)));
+    const description = key === 'fonte' ? (list(dimensions.informacoes?.links).length ? 'Há links citados no corpo do texto para conferir. A presença de links não comprova a afirmação.' : 'Não foram identificados links citados no corpo do texto. O endereço da publicação enviada é exibido separadamente e não entra neste indicador.') : text(item.descricao);
+    card.append(element('span','analysis-level',text(item.nivel)),element('small','',description));
     col.append(card);row.append(col);
   });section.append(row);
   if(dimensions.evidencia){
@@ -188,13 +192,13 @@ function information(info) {
     const items=list(info[key]);if(items.length)items.forEach(value=>values.append(element('span','',text(value))));else values.append(element('em','','Não identificado'));
     group.append(label,values);grid.append(group);
   });section.append(grid);
-  if(list(info.links).length){const links=element('div','news-links mt-3');links.append(element('strong','','Links encontrados'));info.links.forEach(url=>appendSafeLink(links,url,url));section.append(links);}
+  if(list(info.links).length){const links=element('div','news-links mt-3');links.append(element('strong','','Links citados no corpo do texto'));info.links.forEach(url=>appendSafeLink(links,url,url));section.append(links);}
   return section;
 }
 function articleSource(article) {
   if(!article?.url)return null;
   const section=element('section','article-source mb-3'),row=element('div','d-flex gap-2 align-items-start'),content=element('div','flex-grow-1 min-width-0');
-  row.append(icon('fa-newspaper mt-1','#74b9ff'));heading(content,'Fonte enviada',null,'mb-1');
+  row.append(icon('fa-newspaper mt-1','#74b9ff'));heading(content,'Endereço da publicação enviada',null,'mb-1');
   if(article.titulo)content.append(element('strong','article-source-title',text(article.titulo)));
   paragraph(content,text(article.descricao),'article-source-description mb-2');
   appendSafeLink(content,article.url,article.url,'article-source-url');
@@ -227,7 +231,7 @@ function characteristics(visual,data) {
   const row=element('div','row g-1');
   [
     (chars>200?'✅':'⚠️')+' Tamanho: '+(chars<80?'muito curto':chars<200?'curto':chars<600?'médio':'longo')+' ('+chars+' caracteres)',
-    (hasLink?'✅ Contém link/fonte':'❌ Sem link de fonte'),
+    (hasLink?'✅ Há links citados no texto':'ℹ️ Sem links citados no texto'),
     (hasDate?'✅ Contém data':'❌ Sem data clara'),
     (!list(visual.analiseLocal.alertasFalso).length?'✅ Linguagem neutra':'⚠️ Linguagem emocional/alarmista'),
     '📝 '+words+' palavra(s) no total',
@@ -268,7 +272,8 @@ function sourceList(data) {
 function geminiFeedback(data) {
   const section=panel('gemini-feedback');heading(section,'Feedback do Gemini','fa-wand-magic-sparkles me-2');
   const feedback=data.feedbackGemini||{};
-  const content=text(feedback.texto)||'O feedback do Gemini não está disponível nesta análise. Os indicadores e as checagens acima continuam disponíveis.';
+  const disabled = feedback.estado === 'desativado' || data.geracao?.estado === 'desativado' || feedback.status === 'desativado' || data.geracao?.status === 'desativado' || /IA opcional não configurada|recurso desativado/i.test(text(data.geracao?.motivo));
+  const content=disabled ? 'O comentário por IA está desativado nesta versão. A busca de checagens do Google é uma integração separada e seu resultado aparece acima.' : text(feedback.texto)||'O feedback do Gemini não está disponível nesta análise. Os indicadores e as checagens acima continuam disponíveis.';
   paragraph(section,content,'gemini-feedback-text mb-2');
   if(feedback.status==='ia')paragraph(section,'Comentário gerado por IA; confira as fontes e o contexto.','small opacity-75 mb-1');
   const sources=list(data.fontes);
@@ -289,7 +294,10 @@ function geminiFeedback(data) {
 export function renderAnalysis(container,record) {
   const data=normalizeResult(record),visual=getVisual(data),output=document.createDocumentFragment();
   const root=element('div','restored-results');
-  root.append(header(data,visual),meter(visual,data));
+  const conclusion=panel('factual-summary');
+  conclusion.append(element('small','','Conclusão pelas evidências'),element('h3','',resultLabel(data)));
+  paragraph(conclusion,text(data.justificativa)||'Leia as checagens e confira se correspondem à afirmação, à data e ao contexto enviados.','small mb-0');
+  root.append(conclusion,header(data,visual),meter(visual,data));
   const related=regional(data);if(related)root.append(related);
   root.append(metrics(visual,data));
   const details=overview(visual.dimensoes);if(details)root.append(details);
@@ -300,6 +308,20 @@ export function renderAnalysis(container,record) {
   const sources=sourceList(data);if(sources)root.append(sources);
   const guidance=panel('user-guidance');heading(guidance,'O que fazer com essa informação','fa-list-check me-2');
   paragraph(guidance,text(data.secoes?.orientacao)||'Consulte a fonte original e confira datas, nomes e contexto antes de compartilhar. Indicadores de linguagem não substituem checagens publicadas.','small mb-0');root.append(guidance);
+  const learning=panel('learning-recommendations');
+  heading(learning,'Continue aprendendo','fa-book-open me-2');
+  paragraph(learning,'Aulas para ajudar você a dar o próximo passo na investigação.','small mb-0');
+  const links=element('div','learning-links');
+  recommendedLessons(data).forEach(id=>{
+    if(!isLessonAvailable(id))return;
+    const lesson=lessons.find(item=>item.lessonId===id);
+    if(!lesson)return;
+    const link=element('a','',lesson.titulo+' →');
+    link.href='/#licao-'+id;
+    link.dataset.openLesson=id;
+    links.append(link);
+  });
+  if(links.childElementCount){learning.append(links);root.append(learning);}
   root.append(geminiFeedback(data));
   const limits=[...new Set([...list(data.limitacoes),data.avisoHistorico].filter(value=>typeof value==='string'&&value))];
   if(limits.length){const note=element('details','analysis-limitations small mb-3');note.append(element('summary','','Limitações da análise'));const ul=element('ul','analysis-list mt-2');limits.forEach(value=>ul.append(element('li','',value)));note.append(ul);root.append(note);}

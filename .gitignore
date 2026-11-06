@@ -1,0 +1,28 @@
+# Dependências e saídas locais
+node_modules/
+dist/
+coverage/
+.nyc_output/
+*.log
+
+# Segredos
+.env
+.env.*
+!.env.example
+
+# Recuperação e verificações visuais locais
+backups/
+.artifacts/
+
+# Temporários de persistência
+data/*.lock
+data/*.tmp
+data/.cleanup-*/
+
+# Editor e sistema operacional
+.vscode/
+.idea/
+*.swp
+*.swo
+.DS_Store
+Thumbs.db

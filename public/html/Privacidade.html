@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Saiba quais dados o VerificaFato IFPR utiliza, como as análises funcionam e como contatar os responsáveis pelo projeto.">
+    <title>Privacidade, responsáveis e contato — VerificaFato IFPR</title>
+    <link rel="canonical" href="https://verfica-fato-ifpr.vercel.app/html/Privacidade.html">
+    <link rel="icon" type="image/png" href="/html/img/Logo%20oficial.png">
+    <link rel="stylesheet" href="/css/style.css">
+    <link rel="stylesheet" href="/css/information.css">
+</head>
+<body>
+    <a class="skip-link" href="#conteudo">Pular para o conteúdo</a>
+    <header class="site-header"><div class="information-header"><a class="brand-link" href="/">VerificaFato</a><div id="theme-toggle-container" class="theme-toggle-inline"></div></div></header>
+    <main id="conteudo" class="information-page">
+        <p class="information-kicker">Transparência</p>
+        <h1>Seus dados e o projeto</h1>
+        <p>O VerificaFato IFPR oferece educação midiática e checagem assistida. Esta página descreve o funcionamento da aplicação e os canais dos responsáveis.</p>
+        <p><small>Atualizada em 4 de novembro de 2026.</small></p>
+        <nav aria-label="Nesta página"><a href="#dados">Dados utilizados</a><a href="#servicos">Serviços externos</a><a href="#responsaveis">Responsáveis e contato</a></nav>
+        <section id="dados">
+            <h2>Quais dados são utilizados</h2>
+            <ul>
+                <li><strong>Conta:</strong> nome, e-mail, cidade opcional, foto de perfil quando informada, tipo e estado da conta, datas de criação e atualização. A senha é guardada como hash, sem seu valor original.</li>
+                <li><strong>Histórico:</strong> quando você está conectado, o texto ou link enviado, resultado completo, fontes e data da análise podem ser guardados na sua conta. Você pode excluir cada consulta na página <a href="/html/Historico.html">Histórico</a>.</li>
+                <li><strong>Recuperação de senha:</strong> guarda temporariamente um hash do token de recuperação e sua validade. O token de uso único expira em 30 minutos.</li>
+                <li><strong>Neste navegador:</strong> a aplicação mantém a sessão de acesso, o tema escolhido e as aulas concluídas em armazenamento local. Sair da conta remove a sessão deste navegador.</li>
+                <li><strong>Operação:</strong> a hospedagem pode registrar dados técnicos de acesso, como endereço IP, horário, rota e falhas. A aplicação mantém métricas agregadas de uso e pode usar cache temporário das consultas externas.</li>
+            </ul>
+            <p>As análises públicas funcionam sem conta. Elas não entram em um histórico pessoal. A aplicação não exige dados pessoais no texto a analisar; envie apenas o conteúdo necessário para investigar a informação.</p>
+            <h3>Armazenamento e exclusão</h3>
+            <p>Os dados de conta e do histórico são armazenados no banco de dados do projeto, com acesso restrito por autenticação. Não há prazo automático de exclusão configurado para contas e consultas. Use o histórico para excluir análises ou contate os responsáveis para solicitar acesso, correção ou exclusão dos dados da conta.</p>
+        </section>
+        <section id="servicos">
+            <h2>Quando o conteúdo passa por serviços externos</h2>
+            <ul>
+                <li><strong>Google Fact Check:</strong> recebe termos extraídos da mensagem para pesquisar checagens já publicadas. Esta busca funciona independentemente do comentário por IA.</li>
+                <li><strong>Links enviados:</strong> o servidor acessa o portal indicado para extrair o conteúdo da matéria. O portal recebe essa requisição técnica.</li>
+                <li><strong>IA opcional:</strong> quando habilitada, o provedor configurado (Gemini ou OpenAI) recebe o conteúdo da análise, trechos, indicadores e fontes para elaborar um comentário. Dados da conta e senhas não fazem parte desse envio. O resultado informa se o comentário foi gerado por IA ou se o recurso está desativado.</li>
+                <li><strong>Interface e hospedagem:</strong> arquivos de estilo, ícones e componentes podem ser carregados de jsDelivr e Cloudflare. O site é hospedado na Vercel, e o banco de dados é usado para as contas e consultas salvas.</li>
+            </ul>
+            <p>A análise automática é um apoio à investigação. Leia as fontes, confira datas e contexto antes de concluir ou compartilhar.</p>
+        </section>
+        <section id="responsaveis">
+            <h2>Responsáveis e contato</h2>
+            <p>O código e a manutenção do VerificaFato IFPR estão no projeto <a href="https://github.com/pfc2026/VerficaFato-IFPR" target="_blank" rel="noopener noreferrer">VerficaFato-IFPR, da conta pfc2026</a>. O repositório apresenta os colaboradores e o histórico de alterações.</p>
+            <p>Para suporte, reportar um problema ou solicitar um canal reservado para assuntos sobre sua conta, <a href="https://github.com/pfc2026/VerficaFato-IFPR/issues/new" target="_blank" rel="noopener noreferrer">abra uma solicitação aos mantenedores no GitHub</a>. As solicitações são públicas: descreva o assunto sem publicar senhas, tokens ou dados pessoais. Para tratar dados da conta, peça um canal privado aos responsáveis.</p>
+            <p>Inclua o que aconteceu, a página e o horário aproximado. A equipe poderá orientar a investigação e a solicitação relacionada aos seus dados.</p>
+        </section>
+        <a class="information-back" href="/">← Voltar para o VerificaFato</a>
+    </main>
+    <script src="/js/dark-mode.js"></script>
+</body>
+</html>

@@ -7,6 +7,15 @@ export function getSigningSecret() {
   }
   return secret;
 }
+// Readiness intentionally reports configuration only, never the signing key.
+export function authenticationReadiness() {
+  try {
+    getSigningSecret();
+    return { status: 'pronto', configurado: true };
+  } catch {
+    return { status: 'indisponivel', configurado: false, motivo: 'Chave de autenticação ausente ou inválida no servidor.' };
+  }
+}
 const encode = value => Buffer.from(JSON.stringify(value)).toString('base64url');
 export function gerarToken(userId, version = 0) {
   const now = Math.floor(Date.now() / 1000);

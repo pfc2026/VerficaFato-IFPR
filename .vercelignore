@@ -1,0 +1,8 @@
+.env
+.env.*
+backups/
+.artifacts/
+tests/
+docs/
+scripts/
+README.md

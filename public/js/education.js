@@ -102,6 +102,13 @@ export function initEducation({ fetchImpl = globalThis.fetch, storage } = {}) {
     });
   }
   function renderCatalog() {
+    if (filters) for (const node of filters.children) {
+      const level = node.dataset.level;
+      const comingSoon = level !== 'all' && !catalog.some(item => item.nivel === level);
+      node.textContent = level === 'all' ? 'Todas as aulas' : levels[level] + (comingSoon ? ' · Em breve' : '');
+      node.disabled = comingSoon;
+      node.title = comingSoon ? 'Ainda não há aulas publicadas neste nível.' : '';
+    }
     const focusedId = doc.activeElement?.closest('[data-open-lesson]')?.dataset.openLesson;
     const fragment = doc.createDocumentFragment();
     const visible = catalog.filter(item => filter === 'all' || item.nivel === filter);
