@@ -5,7 +5,7 @@ import { generateExplanation, localSections } from '../services/explanation.js';
 const API_TEST_KEY = 'fake-ai-diagnostics-key-offline-only';
 const PRIVATE_MESSAGE = 'PRIVATE_UPSTREAM_SENTINEL';
 const feedback = 'Ainda faltam evidências para uma conclusão. Confira as fontes originais, as datas e o contexto antes de compartilhar.';
-const configured = extra => ({enabled:true,provider:'gemini',apiKey:API_TEST_KEY,model:'gemini-diagnostics-fixture',...extra});
+const configured = extra => ({enabled:true,provider:'gemini',apiKey:API_TEST_KEY,model:'gemini-diagnostics-fixture',retryDelayMs:0,...extra});
 function fixture(extra={}) {
   return {
     veredito:'Sem evidências suficientes',justificativa:'A consulta não encontrou evidências suficientes.',
@@ -43,7 +43,7 @@ for (const [status,code] of [[401,'AI_AUTH_ERROR'],[403,'AI_AUTH_ERROR'],[429,'A
       assert.equal(new Headers(init.headers).get('x-goog-api-key'),API_TEST_KEY);
       return new Response(PRIVATE_MESSAGE+' '+API_TEST_KEY,{status});
     }}));
-    assert.equal(calls,1);
+    assert.equal(calls,[503,504].includes(status) ? 2 : 1);
     assertSafeFallback(result,base,code);
   });
 }

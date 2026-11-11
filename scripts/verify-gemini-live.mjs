@@ -55,12 +55,14 @@ try {
       method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({texto:example.texto})
     });
     const data=await response.json();
-    const entry={id:example.id,nome:example.nome,http:response.status,geminiHttp:upstream[0] ?? null,calls,durationMs:Date.now()-started,selecao_juridica:selection,resultado:data.dados,validacao:{}};
+    const entry={id:example.id,nome:example.nome,http:response.status,geminiHttp:upstream.at(-1) ?? null,upstreamStatuses:[...upstream],calls,durationMs:Date.now()-started,selecao_juridica:selection,resultado:data.dados,validacao:{}};
     report.cases.push(entry);
     try {
       assert.equal(response.status,200); assert.equal(data.sucesso,true);
       const result=data.dados;
-      assert.equal(calls,1,'Uma única chamada de geração por notícia');
+      assert.ok(calls>=1&&calls<=2,'Uma chamada normal e no máximo uma repetição após falha temporária');
+      assert.equal(calls,result.geracao.tentativas);
+      if(calls===2)assert.ok([408,429,500,502,503,504].includes(upstream[0]),'Repetição somente após HTTP temporário');
       assert.equal(result.geracao.status,'ia','A resposta precisa passar pela validação, além de HTTP 200');
       assert.equal(result.feedbackGemini.status,'ia'); assert.ok(result.feedbackGemini.texto.length>=20);
       const legal=result.contexto_juridico?.aplicavel === true;

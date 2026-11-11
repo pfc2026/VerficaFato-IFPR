@@ -29,7 +29,7 @@ function fixture() {
     limitacoes: ['A ausência de uma checagem não prova verdade ou falsidade.']
   };
 }
-const configured = extra => ({ provider: 'gemini', apiKey: fakeKey, model: 'gemini-configurado', enabled: true, ...extra });
+const configured = extra => ({ provider: 'gemini', apiKey: fakeKey, model: 'gemini-configurado', enabled: true, retryDelayMs: 0, ...extra });
 function allowed(request, overrides = {}) {
   const fields = request.generationConfig.responseFormat.text.schema.properties;
   return { resumo: fields.resumo.enum[0], orientacao: fields.orientacao.enum[0], destaques: ['a2'], feedback: safeFeedback, referencias: [], classificacao: fields.classificacao.enum[0], ...overrides };

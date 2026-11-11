@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { setTimeout as wait } from 'node:timers/promises';
 import { createLimiter } from './limits.js';
 import { boundedJson } from './fact-check.js';
 import { legalCandidates, legalResponseSchema, validateLegalContext } from './legal-context.js';
@@ -44,6 +45,22 @@ export function localSections(result) {
 }
 function defaultProvider() {
   return process.env.AI_PROVIDER || (process.env.GEMINI_API_KEY ? 'gemini' : process.env.OPENAI_API_KEY ? 'openai' : 'gemini');
+}
+function retryAfterMs(value) {
+  if (typeof value !== 'string') return undefined;
+  const text = value.trim();
+  if (/^\d+$/.test(text)) {
+    const seconds = Number(text);
+    return Number.isSafeInteger(seconds) && seconds <= Number.MAX_SAFE_INTEGER / 1000 ? seconds * 1000 : Infinity;
+  }
+  // Do not let Date.parse interpret arbitrary strings as a retry instruction.
+  if (!/^(?:Mon|Tue|Wed|Thu|Fri|Sat|Sun), \d{2} (?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec) \d{4} \d{2}:\d{2}:\d{2} GMT$/.test(text)) return undefined;
+  const timestamp = Date.parse(text);
+  return Number.isFinite(timestamp) && new Date(timestamp).toUTCString() === text ? Math.max(0,timestamp - Date.now()) : undefined;
+}
+function providerError(status) {
+  return new Error([401,403].includes(status) ? 'AI_AUTH_ERROR' : status === 429 ? 'AI_RATE_LIMIT' :
+    [400,404].includes(status) ? 'AI_CONFIG_ERROR' : [408,504].includes(status) ? 'AI_TIMEOUT' : 'AI_UNAVAILABLE');
 }
 function providerRequest(provider,model,apiKey,payload,schema) {
   if (provider === 'gemini') {
@@ -100,7 +117,7 @@ export async function generateExplanation(result,{
   fetchImpl = fetch, provider = defaultProvider(),
   apiKey = provider === 'gemini' ? process.env.GEMINI_API_KEY : process.env.OPENAI_API_KEY,
   model = provider === 'gemini' ? process.env.GEMINI_MODEL : process.env.OPENAI_MODEL,
-  enabled = process.env.ENABLE_AI_EXPLANATION === 'true', signal, timeoutMs = 20000, legalNow = Date.now()
+  enabled = process.env.ENABLE_AI_EXPLANATION === 'true', signal, timeoutMs = 20000, legalNow = Date.now(), retryDelayMs = 1000
 } = {}) {
   const sections = localSections(result);
   const text = String(result.noticia?.texto || result.textoOriginal || result.analiseVisual?.texto || '').slice(0,20000);
@@ -108,10 +125,12 @@ export async function generateExplanation(result,{
   let candidates = [];
   try { candidates = legalCandidates(text,{now:legalNow}); } catch { /* keep the primary analysis available */ }
   const validProvider = ['gemini','openai'].includes(provider);
+  let attempts = 0, providerHttp;
+  const attemptMetadata = () => ({...(attempts ? {tentativas:attempts} : {}),...(providerHttp ? {httpProvedor:providerHttp} : {})});
   const fallback = (motivo, estado = 'indisponivel', codigo) => ({
     secoes:sections,
     contexto_juridico:{aplicavel:false,referencias:[]},
-    geracao:{status:'local',estado,provedor:validProvider ? provider : null,metodo:'explicação ancorada nas evidências',motivo,...(codigo ? {codigo} : {})},
+    geracao:{status:'local',estado,provedor:validProvider ? provider : null,metodo:'explicação ancorada nas evidências',motivo,...(codigo ? {codigo} : {}),...attemptMetadata()},
     feedbackGemini:{
       texto:estado === 'desativado' ? 'O comentário por IA está desativado nesta versão. A análise de linguagem e a busca de checagens Google são recursos separados e continuam disponíveis conforme a configuração do serviço.' : provider === 'gemini' ? 'O Gemini não pôde gerar um comentário nesta tentativa. ' + motivo + ' A verificação acima continua disponível. Confira o contexto e as fontes originais antes de compartilhar.' :
         'O comentário da IA não está disponível nesta tentativa. A verificação acima continua disponível. Confira o contexto e as fontes originais antes de compartilhar.',
@@ -149,22 +168,41 @@ export async function generateExplanation(result,{
       let request;
       try { request = providerRequest(provider,model,apiKey,payload,schema); }
       catch { throw new Error('AI_CONFIG_ERROR'); }
-      const deadline = AbortSignal.timeout(Math.max(1, Math.min(30000, Number(timeoutMs) || 20000)));
-      let response;
-      try { response = await fetchImpl(request.url,{
-        method:'POST',redirect:'error',headers:request.headers,
-        signal:signal ? AbortSignal.any([signal,deadline]) : deadline,
-        body:JSON.stringify(request.body)
-      }); } catch {
-        throw new Error(deadline.aborted || signal?.aborted ? 'AI_TIMEOUT' : 'AI_NETWORK_ERROR');
+      const budgetMs = Math.max(1, Math.min(30000, Number(timeoutMs) || 20000));
+      const started = Date.now(), deadline = AbortSignal.timeout(budgetMs);
+      const requestSignal = signal ? AbortSignal.any([signal,deadline]) : deadline;
+      const body = JSON.stringify(request.body);
+      // One optional retry shares the SAME deadline and concurrency slot. No
+      // repetition after a successful HTTP response, invalid JSON or refusal.
+      while (true) {
+        if (requestSignal.aborted) throw new Error('AI_TIMEOUT');
+        let response;
+        try {
+          attempts++;
+          response = await fetchImpl(request.url,{
+            method:'POST',redirect:'error',headers:request.headers,signal:requestSignal,body
+          });
+        } catch {
+          throw new Error(requestSignal.aborted ? 'AI_TIMEOUT' : 'AI_NETWORK_ERROR');
+        }
+        providerHttp = response.status;
+        if (response.ok) {
+          try { return await boundedJson(response,128000); }
+          catch (error) { if (requestSignal.aborted) throw new Error('AI_TIMEOUT'); throw error; }
+        }
+        const after = retryAfterMs(response.headers.get('retry-after'));
+        try { await response.body?.cancel?.(); } catch { /* cleanup must not mask the provider status */ }
+        const transient = [408,500,502,503,504].includes(response.status) || response.status === 429 && after !== undefined;
+        if (provider !== 'gemini' || attempts >= 2 || !transient) throw providerError(response.status);
+        if (requestSignal.aborted) throw new Error('AI_TIMEOUT');
+        const baseDelay = Math.max(0,Math.min(2000,Number(retryDelayMs) || 0));
+        const delay = Math.max(baseDelay + (baseDelay ? Math.floor(Math.random()*250) : 0),after ?? 0);
+        // Never shorten Retry-After or start a second call without at least a
+        // second left for generation. The normal global analysis limit still applies.
+        if (delay + 1000 >= budgetMs - (Date.now() - started)) throw providerError(response.status);
+        try { await wait(delay,undefined,{signal:requestSignal}); }
+        catch { throw new Error('AI_TIMEOUT'); }
       }
-      if (!response.ok) {
-        await response.body?.cancel?.();
-        throw new Error([401,403].includes(response.status) ? 'AI_AUTH_ERROR' : response.status === 429 ? 'AI_RATE_LIMIT' :
-          [400,404].includes(response.status) ? 'AI_CONFIG_ERROR' : response.status === 504 ? 'AI_TIMEOUT' : 'AI_UNAVAILABLE');
-      }
-      try { return await boundedJson(response,128000); }
-      catch (error) { if (deadline.aborted || signal?.aborted) throw new Error('AI_TIMEOUT'); throw error; }
     });
     const output = providerText(provider,data);
     const parsed = z.object({
@@ -180,7 +218,7 @@ export async function generateExplanation(result,{
     return {
       contexto_juridico:legal,
       secoes:{...sections,resumo:parsed.resumo,orientacao:parsed.orientacao},
-      geracao:{status:'ia',provedor:provider,modelo:model,metodo:'comentário complementar baseado nos dados da verificação',destaques:parsed.destaques},
+      geracao:{status:'ia',provedor:provider,modelo:model,metodo:'comentário complementar baseado nos dados da verificação',destaques:parsed.destaques,...attemptMetadata()},
       feedbackGemini:{texto:parsed.feedback,status:'ia',provedor:provider,modelo:model,referencias:parsed.referencias.map(id=>sources.find(source=>source.id === id))}
     };
   } catch (error) {
