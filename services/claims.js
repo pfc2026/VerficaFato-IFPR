@@ -1,3 +1,5 @@
+import { isSpecificClaim, relevanceTerms } from './relevance.js';
+
 export const normalizeClaim = value => String(value).normalize('NFC')
   .replace(/[“”„«»]/g, '"').replace(/[’‘]/g, "'").replace(/[.!?]+$/g, '').replace(/\s+/g, ' ').trim();
 export function extractClaims(text, maxClaims = 8) {
@@ -15,6 +17,7 @@ export function extractClaims(text, maxClaims = 8) {
     if (/\b(?:ignore|desconsidere|esqueça)\b.{0,100}\b(?:instruções|regras|prompt|sistema)\b|\b(?:system prompt|developer message|ignore previous)\b/i.test(sentence)) tipo = 'instrucao';
     else if (/\?$/.test(sentence) || /^(?:eu (?:acho|acredito|prefiro)|na minha opinião|para mim|gosto de)\b/i.test(sentence)) tipo = 'opiniao';
     else if (/\b(?:será|serão|vai acontecer|irá|prevejo|previsão|poderá)(?=$|[^\p{L}])/iu.test(sentence)) tipo = 'previsao';
+    else if (!isSpecificClaim(sentence)) tipo = 'editorial';
     claims.push({ id: 'a' + (claims.length + 1), texto: sentence, tipo });
   }
   return { claims, omitted };
@@ -32,16 +35,15 @@ export function languageIndicators(text) {
   if (capitals) indicadores.push({ label: 'Trecho com letras maiúsculas', trecho: capitals[0] });
   return indicadores;
 }
-const stopwords = new Set('a o as os de da do das dos em no na nos nas um uma uns umas e é que com para por sem sobre entre até como mas ou se não já mais muito também isso isto esse essa este esta aquele aquela seu sua seus suas foi foram ser sendo sido são está estão tem vai pode disse segundo ainda apenas assim quando onde porque ele ela eu você vocês'.split(' '));
 export function keywordQuery(text, limit = 10) {
-  const words = text.match(/[\p{L}\p{N}][\p{L}\p{N}'-]*/gu) || [];
-  return [...new Set(words.filter(w => w.length >= 3 && !stopwords.has(w.toLowerCase())).map(w => w.toLowerCase()))].slice(0,limit).join(' ');
+  return relevanceTerms(text).slice(0,limit).join(' ');
 }
 export function queryVariants(text) {
+  if (!isSpecificClaim(text)) return [];
   // Auditable PT-BR lexical expansion only, never claimed as model-derived paraphrases.
   const keywords = keywordQuery(text);
   const variants = [text.slice(0,300), keywords];
-  const expanded = keywords.replace(/\bimunizante\b/g,'vacina').replace(/\bimunização\b/g,'vacinação').replace(/\bpleito\b/g,'eleição');
+  const expanded = keywords.replace(/\bimunizante\b/g,'vacina').replace(/\bimunizacao\b/g,'vacinacao').replace(/\bpleito\b/g,'eleicao');
   if (expanded !== keywords) variants.push(expanded);
   return [...new Set(variants.filter(Boolean))].slice(0,3);
 }

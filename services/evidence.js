@@ -1,4 +1,5 @@
 import { normalizeClaim } from './claims.js';
+import { filterRelevantReviews } from './relevance.js';
 export const VERDICTS = Object.freeze({
   TRUE:'Verdadeiro', FALSE:'Falso', PARTIAL:'Parcialmente verdadeiro', MISLEADING:'Enganoso',
   UNKNOWN:'Sem evidências suficientes', UNVERIFIABLE:'Não verificável'
@@ -25,8 +26,8 @@ export function trustedReview(review) {
 function contextAmbiguous(text) { return /\b(?:hoje|ontem|amanhã|agora|aqui|atualmente|neste ano|este ano|essa pessoa|ele|ela)(?=$|[^\p{L}])/iu.test(text); }
 export function evaluateClaim(claim,reviews,comparisons = []) {
   if (claim.tipo !== 'fato') return { ...claim,veredito:VERDICTS.UNVERIFIABLE,
-    justificativa:claim.tipo === 'instrucao' ? 'O trecho contém instruções e foi tratado como dado, sem executá-las.' : 'O trecho foi identificado por regras como opinião, pergunta ou previsão; confira o contexto original.',evidencias:[],conflito:false };
-  const matched = reviews.map(review => {
+    justificativa:claim.tipo === 'instrucao' ? 'O trecho contém instruções e foi tratado como dado, sem executá-las.' : claim.tipo === 'editorial' ? 'O trecho é uma apresentação, conclusão genérica ou orientação editorial, sem alegação específica para consultar isoladamente.' : 'O trecho foi identificado por regras como opinião, pergunta ou previsão; confira o contexto original.',evidencias:[],conflito:false };
+  const matched = filterRelevantReviews(claim.texto,reviews).map(review => {
     const comparison = comparisons.find(c => c.afirmacaoId === claim.id && c.evidenciaId === review.id);
     const exact = normalizeClaim(review.texto_verificado) === normalizeClaim(claim.texto);
     const date = Date.parse(review.data_verificacao);
@@ -47,7 +48,7 @@ export function evaluateClaim(claim,reviews,comparisons = []) {
     veredito !== VERDICTS.UNKNOWN ? 'Há checagem publicada com texto correspondente e avaliação reconhecida. A classificação é atribuída ao verificador e à data indicada; leia a análise original.' :
     matched.some(r => r.correspondencia === 'exata') ? 'Há correspondência textual, mas faltam condições de contexto, data ou avaliação reconhecida para uma conclusão automática.' :
     matched.length ? 'Os resultados encontrados tratam de afirmações relacionadas. A semelhança não comprova esta afirmação.' :
-    'Não foi encontrada uma checagem correspondente nesta consulta. Isso não permite concluir que a afirmação seja verdadeira ou falsa.';
+    'Não foi encontrada uma checagem pertinente nesta consulta. Isso não permite concluir que a afirmação seja verdadeira ou falsa.';
   return {...claim,veredito,justificativa,evidencias:matched,conflito};
 }
 export function consolidate(claims,{incomplete = false} = {}) {

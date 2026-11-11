@@ -8,9 +8,9 @@ Senhas novas exigem pelo menos 12 caracteres e no máximo 72 bytes em UTF-8, lim
 
 A recuperação usa a API HTTP real do Brevo ou do Resend. Não há envio simulado nem links de recuperação expostos na resposta da API.
 
-O provedor escolhido para este projeto é **Resend**, já selecionado em `.env.example`. Configure `RECOVERY_EMAIL_PROVIDER=resend`, `RESEND_API_KEY`, `RECOVERY_EMAIL_FROM` e `APP_URL` no ambiente do servidor. O plano Free permite 3.000 e-mails por mês, com limite de 100 por dia. Para enviar a outros usuários, é necessário verificar um domínio que você controla; o domínio de testes `resend.dev` só permite enviar ao e-mail da própria conta Resend. O endereço gratuito do site em `vercel.app` não fornece controle do DNS para essa verificação. Não contrate domínio ou plano sem considerar essa restrição de custo.
+O provedor selecionado em produção é **Brevo**, também indicado em `.env.example`. Configure `RECOVERY_EMAIL_PROVIDER=brevo`, `BREVO_API_KEY`, `RECOVERY_EMAIL_FROM` e `APP_URL` no ambiente do servidor. A implementação mantém Resend como alternativa compatível. Instalações antigas sem `RECOVERY_EMAIL_PROVIDER` continuam usando Resend; a seleção do Brevo deve ser explícita.
 
-### Alternativa opcional: Brevo
+### Provedor selecionado: Brevo
 
 O plano Free oferece até 300 e-mails por dia, compartilhados com outros envios da conta (limite consultado em 06/11/2026). Mantenha a conta nesse plano; não é necessário contratar upgrade para esta integração. A liberação do envio transacional depende do provedor.
 
@@ -32,9 +32,9 @@ Guarde a chave no ambiente, sem colocá-la no código ou em mensagens. Para test
 
 Referências: [limites gratuitos](https://help.brevo.com/hc/en-us/articles/208580669-FAQs-What-are-the-limits-of-the-Free-plan), [cadastro do remetente](https://help.brevo.com/hc/en-us/articles/208836149-Create-a-new-sender-From-name-and-From-email), [chaves de API](https://help.brevo.com/hc/en-us/articles/40159485019794-Create-and-manage-your-API-keys) e [API de envio](https://developers.brevo.com/docs/send-a-transactional-email).
 
-### Provedor escolhido: Resend
+### Alternativa opcional: Resend
 
-Selecione `RECOVERY_EMAIL_PROVIDER=resend`. Instalações antigas sem essa variável continuam usando Resend. Para ativar:
+Selecione `RECOVERY_EMAIL_PROVIDER=resend`. Para enviar a outros usuários, é necessário verificar um domínio que você controla; o domínio de testes `resend.dev` só permite enviar ao e-mail da própria conta Resend. O endereço gratuito do site em `vercel.app` não fornece controle do DNS para essa verificação. Não contrate domínio ou plano sem considerar essa restrição de custo. Para ativar:
 
 1. Crie uma conta Free no Resend e uma chave em **API Keys** com permissão de envio. Não é necessário instalar uma integração da Vercel para usar esta API.
 2. Verifique um domínio que você controla no Resend. Configure `RECOVERY_EMAIL_FROM` com um endereço desse domínio, por exemplo no formato `VerificaFato <conta@seu-dominio>`; não use o domínio de outra instituição sem autorização.
