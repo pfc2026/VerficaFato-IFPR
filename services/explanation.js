@@ -191,7 +191,9 @@ export async function generateExplanation(result,{
           catch (error) { if (requestSignal.aborted) throw new Error('AI_TIMEOUT'); throw error; }
         }
         const after = retryAfterMs(response.headers.get('retry-after'));
-        try { await response.body?.cancel?.(); } catch { /* cleanup must not mask the provider status */ }
+        // Start cleanup without waiting for a potentially stalled transport.
+        // Its rejection must not mask the HTTP error or escape as an unhandled rejection.
+        try { response.body?.cancel?.()?.catch?.(()=>{}); } catch { /* best-effort cleanup */ }
         const transient = [408,500,502,503,504].includes(response.status) || response.status === 429 && after !== undefined;
         if (provider !== 'gemini' || attempts >= 2 || !transient) throw providerError(response.status);
         if (requestSignal.aborted) throw new Error('AI_TIMEOUT');

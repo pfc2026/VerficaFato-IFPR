@@ -240,3 +240,34 @@ test('OpenAI does not inherit Gemini retries and zero-attempt states carry no at
     assert.equal(Object.hasOwn(result.geracao,'httpProvedor'),false);
   }
 });
+
+test('a failed response body whose cancellation never settles cannot block the bounded retry',async()=>{
+  let calls=0,cancelled=0,guard;
+  const pending=generateExplanation(fixture(),config({fetchImpl:async(_url,init)=>{
+    if(++calls===1)return new Response(new ReadableStream({cancel(){cancelled++;return new Promise(()=>{});}}),{status:503});
+    return success(init);
+  }}));
+  try {
+    const result=await Promise.race([pending,new Promise((_,reject)=>{guard=setTimeout(()=>reject(new Error('Response cleanup blocked the retry')),1000);})]);
+    assert.equal(cancelled,1);assert.equal(calls,2);
+    assert.equal(result.geracao.status,'ia');assert.equal(result.geracao.tentativas,2);assert.equal(result.geracao.httpProvedor,200);
+    assert.equal(result.contexto_juridico.aplicavel,true);
+  } finally {clearTimeout(guard);}
+});
+
+test('a rejected failed-body cancellation is handled without masking recovery or emitting an unhandled rejection',async t=>{
+  const unhandled=[],onUnhandled=reason=>unhandled.push(reason);
+  process.on('unhandledRejection',onUnhandled);
+  t.after(()=>process.removeListener('unhandledRejection',onUnhandled));
+  let calls=0,cancelled=0;
+  const result=await generateExplanation(fixture(),config({fetchImpl:async(_url,init)=>{
+    if(++calls===1)return new Response(new ReadableStream({cancel(){cancelled++;return Promise.reject(new Error('private-provider-cleanup-error'));}}),{status:503});
+    return success(init);
+  }}));
+  await new Promise(setImmediate);
+  assert.equal(cancelled,1);assert.equal(calls,2);
+  assert.equal(result.geracao.status,'ia');assert.equal(result.geracao.tentativas,2);assert.equal(result.geracao.httpProvedor,200);
+  assert.equal(result.contexto_juridico.aplicavel,true);
+  assert.deepEqual(unhandled,[]);
+  assert.doesNotMatch(JSON.stringify(result),/private-provider-cleanup-error/);
+});
