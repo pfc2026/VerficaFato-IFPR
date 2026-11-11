@@ -199,7 +199,10 @@ function analisarDimensoesNoticia(texto, analiseLocal, dadosAPI = {}) {
         fonte: {
             pontuacao: qualidadeFonte,
             nivel: qualidadeFonte >= 70 ? 'boa' : qualidadeFonte >= 35 ? 'parcial' : 'fraca',
-            descricao: temLink ? 'Há um link ou referência que pode ser conferido.' : 'Não há link de fonte no conteúdo enviado.'
+            escopo: 'referencias_no_texto',
+            descricao: temLink
+                ? 'O texto analisado contém link(s) de referência. A URL da publicação é apresentada separadamente e não comprova suas afirmações.'
+                : 'Não foram identificados links de referência no corpo do texto analisado. A URL da publicação, quando enviada, é apresentada separadamente.'
         },
         estrutura: {
             pontuacao: completude,

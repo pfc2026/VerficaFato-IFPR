@@ -8,7 +8,11 @@ const UserSchema = new mongoose.Schema({
   fotoPerfil: { type: String, default: '', maxlength: 500 },
   role: { type: String, enum: ['user', 'admin'], default: 'user' },
   ativo: { type: Boolean, default: true },
-  tokenVersion: { type: Number, default: 0, min: 0 }
+  tokenVersion: { type: Number, default: 0, min: 0 },
+  resetPasswordTokenHash: { type: String, select: false },
+  resetPasswordExpiresAt: { type: Date, select: false },
+  resetPasswordRequestedAt: { type: Date, select: false }
 }, { timestamps: true, bufferCommands: false });
+UserSchema.index({ resetPasswordTokenHash: 1 }, { sparse: true });
 UserSchema.methods.verificarSenha = function (password) { return bcrypt.compare(password, this.senha); };
 export default mongoose.models.User || mongoose.model('User', UserSchema);

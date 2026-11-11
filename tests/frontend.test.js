@@ -42,7 +42,7 @@ test('resultado restaura medidor, contadores e cartões da imagem com feedback s
     feedbackGemini:{texto:feedback,status:'ia',provedor:'gemini',referencias:[]}}));
   assert.equal(root.querySelector('.meter-percentage').textContent,'50%');
   assert.deepEqual([...root.querySelectorAll('.metric-value')].map(node=>node.textContent),['0','0','8','0']);
-  assert.match(root.querySelector('.credibility-meter').textContent,/Inconclusivo \/ Verificar/);
+  assert.match(root.querySelector('.credibility-meter').textContent,/Padrões mistos no texto/);
   assert.match(root.querySelector('.credibility-meter').textContent,/não representa probabilidade/);
   assert.deepEqual([...root.querySelectorAll('.analysis-card strong')].map(node=>node.textContent),['0/100','0/100','8/100']);
   assert.match(root.querySelector('.news-information').textContent,/flavio bolsonaro teve um romance com o lula\?/);
@@ -51,8 +51,8 @@ test('resultado restaura medidor, contadores e cartões da imagem com feedback s
   assert.equal(root.querySelector('.gemini-feedback-text').textContent,feedback);
   const nodes=[...root.querySelector('.restored-results').children];
   assert.ok(nodes.indexOf(root.querySelector('.gemini-feedback'))>nodes.indexOf(root.querySelector('.text-characteristics')));
-  assert.equal(root.querySelectorAll('h3').length,0);
-  assert.equal(resultLabel({resultado:result({analiseVisual:visual})}),'Inconclusivo / Verificar');
+  assert.equal(root.querySelector('.factual-summary h3').textContent,'Sem evidências suficientes');
+  assert.equal(resultLabel({resultado:result({analiseVisual:visual})}),'Sem evidências suficientes');
   dom.window.close();
 });
 
@@ -62,6 +62,24 @@ test('resultado sem indicadores armazenados não recebe porcentagem inventada', 
   assert.equal(root.querySelector('.meter-percentage').textContent,'—');
   assert.doesNotMatch(root.textContent,/99%|Confiança alta/);
   assert.match(root.querySelector('.gemini-feedback').textContent,/não está disponível/);
+  dom.window.close();
+});
+
+test('índice alto de linguagem nunca vira conclusão factual ou rótulo para compartilhar', () => {
+  const {dom,root}=browser();
+  const visual=criarAnaliseVisual('Uma mensagem com dados e referências que ainda precisam ser conferidos.');
+  visual.porcentagem=95;
+  visual.veredito='Provavelmente Verdadeira';
+  visual.confianca='alta';
+  const record=result({analiseVisual:visual});
+  renderAnalysis(root,record);
+  assert.equal(root.querySelector('.factual-summary h3').textContent,'Sem evidências suficientes');
+  assert.equal(resultLabel(record),'Sem evidências suficientes');
+  assert.equal(root.querySelector('.meter-percentage').textContent,'95%');
+  assert.doesNotMatch(root.textContent,/Provavelmente Verdadeira|Confiança alta/);
+  const links=[...root.querySelectorAll('.learning-recommendations a')];
+  assert.ok(links.length>=1 && links.length<=3);
+  assert.ok(links.every(link=>link.getAttribute('href')==='/#licao-'+link.dataset.openLesson));
   dom.window.close();
 });
 
@@ -77,7 +95,7 @@ test('conteúdo hostil em todos os campos é renderizado como texto e links ativ
     noticiasRegionais:[{titulo:attack,fonte:attack,url:'javascript:alert(1)'}],limitacoes:[attack]
   }));
   assert.equal(root.querySelectorAll('script,img,iframe,svg,[onerror],[onclick]').length,0);
-  assert.equal(root.querySelectorAll('a').length,0);
+  assert.equal(root.querySelectorAll('a[href^="javascript:"],a[href^="data:"],.external-reviews a,.consulted-sources a').length,0);
   assert.ok(root.textContent.includes(attack));
   assert.equal(dom.window.pwned,undefined);
   dom.window.close();
@@ -91,7 +109,7 @@ test('fontes reais mantêm URL, atribuição, datas e avaliação original', () 
   assert.match(root.textContent,/Avaliação publicada: Falso/);
   assert.match(root.textContent,/Verificador de exemplo/);
   assert.match(root.textContent,/2026-10-20/);
-  for (const link of root.querySelectorAll('a')) {
+  for (const link of root.querySelectorAll('.external-reviews a')) {
     assert.equal(link.href,'https://example.com/checagem');
     assert.equal(link.rel,'noopener noreferrer');
     assert.equal(link.target,'_blank');

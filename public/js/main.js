@@ -1,14 +1,15 @@
 import { showNotice, getStoredUser } from './safe-dom.js';
-import { renderAnalysis, resultLabel } from './result-renderer.js';
+import { renderAnalysis } from './result-renderer.js';
+import { shareSite } from './share.js';
 import { mostrarModalPerfil } from './account.js';
 import { detectInput, MAX_TEXT_LENGTH } from './input.js';
+import { initEducation } from './education.js';
 const showAlert = showNotice;
 const verificationForm = document.getElementById('verificationForm');
 const newsTextEl = document.getElementById('newsText');
 const newsLinkEl = document.getElementById('newsLink');
 const charCounterEl = document.getElementById('charCounter');
 const submitBtn = document.getElementById('submitBtn');
-let lastResult;
 newsTextEl.addEventListener('input', () => {
   charCounterEl.textContent = newsTextEl.value.length.toLocaleString('pt-BR') + ' / 20.000';
   charCounterEl.classList.toggle('text-danger', newsTextEl.value.length > MAX_TEXT_LENGTH * 0.9);
@@ -22,7 +23,7 @@ function setLoading(on) {
 verificationForm.addEventListener('submit', async event => {
   event.preventDefault();
   let payload;
-  try { payload = detectInput(newsTextEl.value, newsLinkEl.value); }
+  try { payload = detectInput(newsTextEl.value, newsLinkEl?.value || ''); }
   catch (error) { showNotice(error.message); return; }
   setLoading(true);
   const controller = new AbortController();
@@ -36,20 +37,14 @@ verificationForm.addEventListener('submit', async event => {
     });
     const data = await response.json();
     if (!response.ok || !data.sucesso) throw new Error(data.erro || 'Não foi possível analisar o conteúdo.');
-    lastResult = renderAnalysis(document.getElementById('modalContent'), data.dados);
+    renderAnalysis(document.getElementById('modalContent'), data.dados);
+    document.getElementById('shareStatus').textContent = '';
     bootstrap.Modal.getOrCreateInstance(document.getElementById('resultsModal')).show();
   } catch (error) {
     showNotice(error.name === 'AbortError' ? 'A análise demorou mais que o esperado. Tente novamente em instantes.' : error.message, 'danger');
   } finally { clearTimeout(timeout); setLoading(false); }
 });
-document.getElementById('shareBtn')?.addEventListener('click', () => {
-  const data = { title: 'VerificaFato', text: 'Consultei uma informação no VerificaFato. Resultado: ' + resultLabel(lastResult || {}), url: window.location.origin };
-  if (navigator.share) navigator.share(data).catch(() => {});
-  else navigator.clipboard?.writeText(data.url).then(() => showNotice('Link copiado!', 'success')).catch(() => showNotice('Não foi possível copiar.', 'danger'));
-});
-document.querySelectorAll('[data-close-lesson]').forEach(node => node.addEventListener('click', () => {
-  document.getElementById('lessonModal').style.display = 'none';
-}));
+document.getElementById('shareBtn')?.addEventListener('click', () => shareSite());
 function atualizarNav() {
     const nav = document.querySelector('.site-nav');
     if (!nav) return;
@@ -60,6 +55,8 @@ function atualizarNav() {
     // Mapeia links padrão
     let html = `
         <a href="/#inicio" class="nav-link">Verificar</a>
+        <a href="/#aprender" class="nav-link">Aprender</a>
+        <a href="/#desafio" class="nav-link">Quiz</a>
     `;
 
     if (token && user) {
@@ -101,3 +98,5 @@ function atualizarNav() {
 
 window.addEventListener('vf-account-updated', atualizarNav);
 document.addEventListener('DOMContentLoaded', atualizarNav);
+if (document.readyState !== 'loading') atualizarNav();
+initEducation();

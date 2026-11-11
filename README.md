@@ -2,6 +2,14 @@
 
 Aplicação Node.js/ES Modules para analisar notícias, mensagens e afirmações em português, recebidas por texto ou URL. Preserva conta, perfil, histórico, administração, fontes, educação e identidade visual do projeto existente.
 
+## Aprender e praticar
+
+A página inicial inclui checklist antes de compartilhar, dez aulas com referências, filtros por nível e quiz de cinco situações fictícias com respostas comentadas. O leitor pode marcar aulas como concluídas; o progresso fica somente no navegador. As aulas também abrem por endereço, como `/#licao-fontes`.
+
+`public/js/education-content.js` reúne o currículo local. `GET /api/education` mantém esse material disponível sem MongoDB e acrescenta as aulas personalizadas do painel quando o banco está disponível. Revisões dos seis textos iniciais antigos são aplicadas apenas a registros reconhecidos como o seed intacto; edições administrativas são preservadas. A apresentação do resultado destaca a classificação por evidências e mantém o índice de linguagem identificado separadamente.
+
+Para repetir a verificação de interação e layout, execute `node scripts/education-visual-check.mjs`. Ela usa análises simuladas e banco desconectado, sem chamadas a serviços de IA ou alteração de dados; as capturas ficam em `.artifacts/`.
+
 ## Executar
 Requer Node.js 22.18 ou superior. Na pasta do projeto:
 ```powershell
@@ -37,6 +45,12 @@ GOOGLE_API_KEY pertence à Google Fact Check Tools API e é separada de GEMINI_A
 
 O modelo produz um comentário breve em texto livre, limitado aos dados da análise. O contrato preserva a classificação, permite apenas IDs de afirmações/fontes recebidos e mantém os blocos factuais do servidor. URLs das referências são resolvidas no servidor. A validação rejeita campos extras, links na prosa, números não recebidos e algumas conclusões categóricas sem evidência. Essas guardas reduzem erros, mas não garantem a correção semântica de toda frase gerada. O cartão identifica o comentário como IA; indisponibilidade ou resposta inválida exibem um aviso local explícito. O modelo não recebe ferramentas de navegação ou execução.
 
+Na mesma chamada, o Gemini pode selecionar referências para **Contexto Jurídico**, com distinção entre o acontecimento relatado e riscos da própria publicação. A seção aparece somente com referências verificadas e pertinentes. Lei, artigo, explicação, consequências e link vêm de uma base revisada de fontes oficiais; o modelo escolhe IDs e trechos literais, sem gerar penas ou URLs livres. Uma falha jurídica não invalida o comentário jornalístico. A base inicial foi conferida em 11/11/2026 e precisa de revisão antes de 11/12/2026, 00:00 UTC; depois desse prazo deixa de fornecer novas referências. O estado da base aparece em `/api/status`. Consulte [CONTEXTO-JURIDICO.md](docs/CONTEXTO-JURIDICO.md) para fontes, limites e inclusão de outros dispositivos verificados.
+
+Os resultados reais do TensorFlow aparecem em detalhes recolhíveis e são enviados ao Gemini como sinais estruturados limitados. O sistema não usa similaridade lexical como prova de verdade. A [auditoria de ML](docs/AUDITORIA-ML-2026-11-11.md) registra os defeitos reproduzidos, as correções e a ausência de dados para afirmar ganho de precisão factual.
+
+Para repetir a validação real, com notícias sintéticas e as credenciais do servidor: `node scripts/verify-gemini-live.mjs`. O comando realiza chamadas externas e salva um relatório local em `.artifacts/gemini-live-results.json`, sem credenciais. `node scripts/legal-visual-check.mjs` verifica esses resultados no Chrome em desktop e celular; `--fixture` exercita seis referências com dados de teste explicitamente identificados, sem chamar Gemini. Falhas HTTP, rejeições de contrato e ausência de referências esperadas fazem o teste real falhar, mesmo se a rota responder HTTP 200. O timeout do Gemini é de 20 segundos dentro do prazo global de 45 segundos; cada notícia faz no máximo uma chamada de geração, sem repetição automática ou troca silenciosa de modelo.
+
 ## Coleta e migração
 ```powershell
 npm run collect -- --help
@@ -71,6 +85,14 @@ POST /api/verificar mantém {texto?,link?,cidade?,categoria?} e envelope {sucess
 Rotas de autenticação, perfil, histórico e CRUD administrativo mantêm seus caminhos. Senhas novas exigem 12 caracteres e até 72 bytes; senhas antigas continuam aceitas no login. Alterar senha revoga sessões existentes.
 
 server.js é o servidor local; api/index.js reutiliza a mesma aplicação no Vercel e conecta ao banco sob demanda. Configure variáveis no ambiente de hospedagem. A migração não publicou nem alterou nenhum ambiente remoto. Em múltiplas instâncias, cache e rate limiting em memória são por instância: utilize limites compartilhados no gateway para produção distribuída.
+
+Para a compatibilidade do carregador do Vercel, `sanitize-html` fica fixado em `2.18.1`, com override restrito à sua dependência `htmlparser2` em `10.1.0` (CommonJS). O parser ESM da versão 12 causava `ERR_REQUIRE_ESM` durante a inicialização da função. O override preserva a versão atual do sanitizador e a resolução do Cheerio.
+
+O `vercel.json` também define instalação limpa com `npm ci` e `NODE_OPTIONS=--experimental-require-module` para as funções, conforme a [configuração oficial do Vercel](https://vercel.com/docs/functions/runtimes/node-js/advanced-node-configuration#experimental-nodejs-require-of-es-module). Assim, o runtime aceita a dependência ESM mesmo se essa combinação reaparecer no ambiente instalado. A reprodução isolada com `sanitize-html@2.18.1` e `htmlparser2@12` falha sem essa opção e passa com ela. Mantenha **os três arquivos** `vercel.json`, `package.json` e `package-lock.json` no mesmo commit; um redeploy do commit anterior não recebe a alteração local. No primeiro redeploy após a correção, não reutilize o cache de build antigo.
+
+Se a configuração precisar ser aplicada diretamente no painel, adicione `NODE_OPTIONS` com valor `--experimental-require-module` nas variáveis de ambiente de Production e Preview e crie um novo deployment. Confira o commit de origem e o Root Directory do projeto para garantir que correspondem à pasta atualizada.
+
+O teste `tests/runtime-compatibility.test.js` importa o handler com `--no-experimental-require-module` para reproduzir um carregador que não aceita `require()` de ESM. Também verifica a sanitização de HTML malformado e links perigosos após interpretação pelo navegador.
 
 Documentos: [diagnóstico e plano](docs/MIGRACAO.md), [metodologia](docs/METODOLOGIA.md), [segurança](docs/SEGURANCA.md), [relatório de validação](docs/VALIDACAO.md), [relatório da entrega](docs/RELATORIO.md).
 

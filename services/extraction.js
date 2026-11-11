@@ -29,10 +29,10 @@ export async function obterConteudoDaUrl(input, { get = safeGet, signal } = {}) 
     throw new HttpError(422, 'O endereço precisa apontar para uma página HTML de notícia.', 'INVALID_CONTENT_TYPE');
   }
   const $ = load(response.text);
-  if (/noarchive|nosnippet/i.test(response.headers['x-robots-tag'] || '') ||
-      /noarchive|nosnippet/i.test($('meta[name="robots"]').attr('content') || '')) {
-    throw new HttpError(422, 'A página restringe a reutilização do conteúdo. Cole o texto autorizado.', 'ACCESS_RESTRICTED');
-  }
+  // noarchive/nosnippet describe search-result presentation, not access to
+  // this public HTML for an on-demand analysis. Crawling permissions are
+  // checked through robots.txt before every request, including redirects.
+  // https://developers.google.com/search/docs/crawling-indexing/robots-meta-tag
   // Preserve article structure and JSON-LD extraction in the shared migrated collector.
   const { NewsExtractor } = await import('../scraper/extractors.js');
   const extractor = NewsExtractor.fromHtml(response.text, response.url);

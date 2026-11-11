@@ -86,9 +86,11 @@
         </div>
         <div class="modal-body" id="modalContent"></div>
         <div class="modal-footer border-0">
+          <p class="small w-100 mb-1">O compartilhamento envia o site. A análise e suas fontes não são incluídas.</p>
+          <p id="shareStatus" class="small w-100 mb-1" role="status" aria-live="polite"></p>
           <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Fechar</button>
           <button type="button" class="btn btn-verify btn-sm" id="shareBtn">
-            <i class="fas fa-share me-1"></i>Compartilhar
+            <i class="fas fa-share me-1" aria-hidden="true"></i>Compartilhar site
           </button>
         </div>
       </div>
@@ -98,6 +100,7 @@
   <footer class="footer mt-5">
     <div class="container footer-bottom">
       <small>&copy; 2026 VerificaFato — Verificação de informação</small>
+      <a href="/html/Privacidade.html">Privacidade, responsáveis e contato</a>
     </div>
   </footer>
 

@@ -8,6 +8,14 @@ import { analisarConteudo } from '../services/analysis.js';
 import { localSections } from '../services/explanation.js';
 
 const question = 'flavio bolsonaro teve um romance com o lula?';
+
+test('source dimension explicitly evaluates references inside the text separately from its publication URL', () => {
+  const source = criarAnaliseVisual('Um vídeo de um domo não demonstra que a Terra seja plana.').dimensoes.fonte;
+  assert.equal(source.escopo, 'referencias_no_texto');
+  assert.match(source.descricao, /no corpo do texto/);
+  assert.match(source.descricao, /URL da publicação.*separadamente/);
+  assert.doesNotMatch(source.descricao, /Não há link de fonte no conteúdo enviado/);
+});
 const fact = 'A prefeitura anunciou uma nova escola em 2025.';
 const quietNlp = async () => ({ indicadores: [], comparacoes: [], tensorflow: { disponivel: false, metodo: 'teste local', modelo: null, limitacoes: [] } });
 const localExplain = async result => ({ secoes: localSections(result), geracao: { status: 'local' } });

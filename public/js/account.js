@@ -8,10 +8,10 @@ function abrirModalAcaoConta(acao, usuario) {
         <form id="accountActionForm">
             <label for="accountCurrentPassword">Senha atual</label>
             <input id="accountCurrentPassword" class="form-control" type="password" autocomplete="current-password" required>
-            <label for="accountNewPassword">Nova senha</label>
-            <input id="accountNewPassword" class="form-control" type="password" minlength="12" autocomplete="new-password" required>
+            <label for="accountNewPassword">Nova senha (mín. 12 caracteres; máx. 72 bytes)</label>
+            <input id="accountNewPassword" class="form-control" type="password" minlength="12" maxlength="72" autocomplete="new-password" required>
             <label for="accountConfirmPassword">Confirmar nova senha</label>
-            <input id="accountConfirmPassword" class="form-control" type="password" minlength="12" autocomplete="new-password" required>
+            <input id="accountConfirmPassword" class="form-control" type="password" minlength="12" maxlength="72" autocomplete="new-password" required>
             <button class="btn btn-verify w-100 mt-3" type="submit"><i class="fas fa-key me-2"></i>Salvar nova senha</button>
         </form>` : `
         <form id="accountActionForm">
@@ -43,8 +43,9 @@ function abrirModalAcaoConta(acao, usuario) {
         const payload = senha
             ? { senhaAtual: document.getElementById('accountCurrentPassword').value, novaSenha: document.getElementById('accountNewPassword').value }
             : { email: document.getElementById('accountNewEmail').value.trim(), senhaAtual: document.getElementById('accountEmailPassword').value };
-        if (senha && payload.novaSenha !== document.getElementById('accountConfirmPassword').value) {
-            document.getElementById('accountActionMessage').textContent = 'As novas senhas não coincidem.';
+        const passwordError = senha && (payload.novaSenha.length < 12 ? 'A senha deve ter pelo menos 12 caracteres.' : new TextEncoder().encode(payload.novaSenha).length > 72 ? 'A senha deve ter no máximo 72 bytes.' : payload.novaSenha !== document.getElementById('accountConfirmPassword').value ? 'As novas senhas não coincidem.' : '');
+        if (passwordError) {
+            document.getElementById('accountActionMessage').textContent = passwordError;
             document.getElementById('accountActionMessage').className = 'account-message error';
             return;
         }

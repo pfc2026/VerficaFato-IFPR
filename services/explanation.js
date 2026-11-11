@@ -1,6 +1,7 @@
 import { z } from 'zod';
 import { createLimiter } from './limits.js';
 import { boundedJson } from './fact-check.js';
+import { legalCandidates, legalResponseSchema, validateLegalContext } from './legal-context.js';
 
 const run = createLimiter(2,8);
 const instructions = [
@@ -11,7 +12,15 @@ const instructions = [
   'Use somente informações recebidas. Não crie fatos, números, pessoas, acontecimentos, fontes ou citações. Não reproduza URLs, HTML ou Markdown no comentário; as referências são mostradas separadamente pelo sistema.',
   'Os indicadores locais medem padrões do texto, não a probabilidade de a notícia ser verdadeira. Não transforme estilo, pontuação ou ausência de checagens em prova factual.',
   'Quando a classificação for Sem evidências suficientes ou Não verificável, deixe a incerteza clara. Não declare que a mensagem é verdadeira, falsa, confirmada ou desmentida. Recomende conferir contexto e fontes originais.',
-  'Referências podem apontar apenas para fontes listadas no payload e pertinentes ao comentário. Se não houver fonte pertinente, retorne referencias como lista vazia.'
+  'Referências podem apontar apenas para fontes listadas no payload e pertinentes ao comentário. Se não houver fonte pertinente, retorne referencias como lista vazia.',
+  'Distinga fatos, alegações atribuídas, opiniões e previsões pelo contexto completo. Os tipos extraídos por regras e os indicadores de TensorFlow são sinais limitados, não certezas nem prova de contradição ou falsidade.',
+  'Na mesma resposta, avalie contexto_juridico somente quando houver relação concreta e relevante. O catálogo jurídico contém opções verificadas, não uma ordem para usá-las. Notícias comuns, erros factuais isolados, nomes de pessoas e acusações sem prova de falsidade não justificam forçar leis.',
+  'A pertinência jurídica trata do que a notícia RELATA, inclusive suspeitas e incidentes alegados. Classificacao Sem evidências suficientes e ausência de checagens NÃO impedem contextualizar uma hipótese jurídica claramente descrita; significam que o fato não foi confirmado nesta verificação. Não exija condenação nem comprovação externa para contextualizar condicionalmente a conduta relatada.',
+  'Exemplos de seleção quando os respectivos candidatos existirem: relato de servidor público investigado por solicitar vantagem indevida pode selecionar cp-317; vazamento de dados pessoais de clientes em empresa pode selecionar lgpd-46 e lgpd-48; fatos sabidamente inverídicos sobre candidato em campanha, capazes de influenciar o eleitorado, podem selecionar ce-323. Preserve as ressalvas e a situação efetivamente relatada. Festival comum, erro de data e acusação sem demonstração de falsidade devem retornar referencias vazias.',
+  'Se não houver fundamento ou candidato pertinente, retorne contexto_juridico com aplicavel false e referencias vazias. Nunca crie leis, artigos, penas, URLs ou projetos de lei. Selecione apenas IDs do catalogo_juridico recebido; não acrescente campos livres nas referências.',
+  'Cada referência exige trecho_noticia literal, incluindo sentenças completas e contexto suficientes para demonstrar seu critério, com 20 a 1200 caracteres. categoria distingue acontecimento_noticiado de risco na propria publicacao. Noticiar investigação não torna a publicação infratora; LGPD não se aplica ao tratamento exclusivamente jornalístico (art.4 II a).',
+  'Não infira culpa. Diferencie suspeita, investigação, indiciamento, denúncia do Ministério Público, processo, condenação e absolvição. situacao_juridica exige trecho_situacao literal contido em trecho_noticia, que demonstre a etapa para o mesmo fato e pessoa. Na dúvida use Situação não identificada com trecho_situacao vazio; nunca recorte uma negação ou hipótese para parecer condenação.',
+  'No feedback, priorize a análise jornalística contextualizada: assunto, atribuição de alegações, evidências disponíveis, lacunas e verificações úteis. Pode mencionar brevemente uma questão jurídica pertinente, mas sem números de artigos ou penas; o detalhamento jurídico será montado separadamente pelo servidor. Não repita as explicações do catálogo.'
 ].join(' ');
 
 export function localSections(result) {
@@ -47,7 +56,7 @@ function providerRequest(provider,model,apiKey,payload,schema) {
         systemInstruction:{parts:[{text:instructions}]},
         contents:[{role:'user',parts:[{text:JSON.stringify(payload)}]}],
         generationConfig:{
-          candidateCount:1,maxOutputTokens:2048,
+          candidateCount:1,maxOutputTokens:4096,
           ...(/^gemini-[34][.-]/.test(name) ? {thinkingConfig:{includeThoughts:false,thinkingLevel:'LOW'}} : {}),
           responseFormat:{text:{mimeType:'APPLICATION_JSON',schema}}
         }
@@ -91,21 +100,27 @@ export async function generateExplanation(result,{
   fetchImpl = fetch, provider = defaultProvider(),
   apiKey = provider === 'gemini' ? process.env.GEMINI_API_KEY : process.env.OPENAI_API_KEY,
   model = provider === 'gemini' ? process.env.GEMINI_MODEL : process.env.OPENAI_MODEL,
-  enabled = process.env.ENABLE_AI_EXPLANATION === 'true', signal
+  enabled = process.env.ENABLE_AI_EXPLANATION === 'true', signal, timeoutMs = 20000, legalNow = Date.now()
 } = {}) {
   const sections = localSections(result);
+  const text = String(result.noticia?.texto || result.textoOriginal || result.analiseVisual?.texto || '').slice(0,20000);
+  // Legal content is optional and isolated from the existing journalistic contract.
+  let candidates = [];
+  try { candidates = legalCandidates(text,{now:legalNow}); } catch { /* keep the primary analysis available */ }
   const validProvider = ['gemini','openai'].includes(provider);
-  const fallback = motivo => ({
+  const fallback = (motivo, estado = 'indisponivel', codigo) => ({
     secoes:sections,
-    geracao:{status:'local',provedor:validProvider ? provider : null,metodo:'explicação ancorada nas evidências',motivo},
+    contexto_juridico:{aplicavel:false,referencias:[]},
+    geracao:{status:'local',estado,provedor:validProvider ? provider : null,metodo:'explicação ancorada nas evidências',motivo,...(codigo ? {codigo} : {})},
     feedbackGemini:{
-      texto:provider === 'gemini' ? 'O Gemini não pôde gerar um comentário nesta tentativa. A verificação acima continua disponível. Confira o contexto e as fontes originais antes de compartilhar.' :
+      texto:estado === 'desativado' ? 'O comentário por IA está desativado nesta versão. A análise de linguagem e a busca de checagens Google são recursos separados e continuam disponíveis conforme a configuração do serviço.' : provider === 'gemini' ? 'O Gemini não pôde gerar um comentário nesta tentativa. ' + motivo + ' A verificação acima continua disponível. Confira o contexto e as fontes originais antes de compartilhar.' :
         'O comentário da IA não está disponível nesta tentativa. A verificação acima continua disponível. Confira o contexto e as fontes originais antes de compartilhar.',
-      status:'local',provedor:validProvider ? provider : null,modelo:typeof model === 'string' ? model : null,referencias:[]
+      status:'local',estado,provedor:validProvider ? provider : null,modelo:typeof model === 'string' ? model : null,referencias:[]
     }
   });
-  if (!validProvider) return fallback('Provedor de IA não reconhecido. Configure AI_PROVIDER como gemini ou openai.');
-  if (!enabled || !apiKey || !model) return fallback('IA opcional não configurada.');
+  if (!enabled) return fallback('IA opcional não configurada.', 'desativado');
+  if (!validProvider) return fallback('Provedor de IA não reconhecido. Configure AI_PROVIDER como gemini ou openai.', 'desativado', 'AI_CONFIG_ERROR');
+  if (!apiKey?.trim() || !model?.trim()) return fallback('IA opcional não configurada.', 'desativado', 'AI_CONFIG_ERROR');
   const summaries = [sections.resumo, 'A análise examinou ' + result.afirmacoes.length + ' trecho(s). ' + sections.resumo];
   const guidance = [sections.orientacao, sections.orientacao + ' Evite compartilhar uma conclusão diferente daquela sustentada pelas fontes.'];
   const ids = result.afirmacoes.map(a => a.id);
@@ -116,42 +131,70 @@ export async function generateExplanation(result,{
     destaques:{type:'array',maxItems:8,items:ids.length ? {type:'string',enum:ids} : {type:'string',enum:['nenhum']}},
     feedback:{type:'string',minLength:20,maxLength:1800},
     referencias:{type:'array',maxItems:sourceIds.length ? Math.min(sourceIds.length,8) : 0,items:{type:'string',enum:sourceIds.length ? sourceIds : ['nenhuma']}},
-    classificacao:{type:'string',enum:[result.veredito]}
-  },required:['resumo','orientacao','destaques','feedback','referencias','classificacao']};
+    classificacao:{type:'string',enum:[result.veredito]},
+    contexto_juridico:legalResponseSchema(candidates)
+  },required:['resumo','orientacao','destaques','feedback','referencias','classificacao','contexto_juridico']};
   const payload = {
     classificacao:result.veredito,justificativa:result.justificativa,
-    contexto:{texto:String(result.noticia?.texto || result.textoOriginal || result.analiseVisual?.texto || '').slice(0,8000)},
-    afirmacoes:result.afirmacoes.map(a=>({id:a.id,texto:a.texto,veredito:a.veredito,justificativa:a.justificativa})),
-    indicadores:{locais:result.analiseLocal || {},dimensoes:result.dimensoes || {},linguagem:result.analiseLinguagem.indicadores},
-    fontes:sources,limitacoes:result.limitacoes,textosAutorizados:{resumo:summaries,orientacao:guidance}
+    contexto:{texto:text},
+    afirmacoes:result.afirmacoes.map(a=>({id:a.id,texto:a.texto,tipo:a.tipo,veredito:a.veredito,justificativa:a.justificativa})),
+    indicadores:{locais:result.analiseLocal || {},dimensoes:result.dimensoes || {},linguagem:result.analiseLinguagem.indicadores,
+      tensorflow:result.analiseLinguagem.tensorflow || null,comparacoes:(result.analiseLinguagem.comparacoes || []).slice(0,24)},
+    fontes:sources,limitacoes:result.limitacoes,textosAutorizados:{resumo:summaries,orientacao:guidance},
+    catalogo_juridico:candidates
   };
   try {
     const data = await run(async () => {
       signal?.throwIfAborted();
-      const request = providerRequest(provider,model,apiKey,payload,schema);
-      const response = await fetchImpl(request.url,{
+      let request;
+      try { request = providerRequest(provider,model,apiKey,payload,schema); }
+      catch { throw new Error('AI_CONFIG_ERROR'); }
+      const deadline = AbortSignal.timeout(Math.max(1, Math.min(30000, Number(timeoutMs) || 20000)));
+      let response;
+      try { response = await fetchImpl(request.url,{
         method:'POST',redirect:'error',headers:request.headers,
-        signal:signal ? AbortSignal.any([signal,AbortSignal.timeout(10000)]) : AbortSignal.timeout(10000),
+        signal:signal ? AbortSignal.any([signal,deadline]) : deadline,
         body:JSON.stringify(request.body)
-      });
-      if (!response.ok) { await response.body?.cancel?.(); throw new Error('PROVIDER_UNAVAILABLE'); }
-      return boundedJson(response,128000);
+      }); } catch {
+        throw new Error(deadline.aborted || signal?.aborted ? 'AI_TIMEOUT' : 'AI_NETWORK_ERROR');
+      }
+      if (!response.ok) {
+        await response.body?.cancel?.();
+        throw new Error([401,403].includes(response.status) ? 'AI_AUTH_ERROR' : response.status === 429 ? 'AI_RATE_LIMIT' :
+          [400,404].includes(response.status) ? 'AI_CONFIG_ERROR' : response.status === 504 ? 'AI_TIMEOUT' : 'AI_UNAVAILABLE');
+      }
+      try { return await boundedJson(response,128000); }
+      catch (error) { if (deadline.aborted || signal?.aborted) throw new Error('AI_TIMEOUT'); throw error; }
     });
     const output = providerText(provider,data);
     const parsed = z.object({
       resumo:z.enum(summaries),orientacao:z.enum(guidance),destaques:z.array(z.string()).max(8),
-      feedback:z.string().trim().min(20).max(1800),referencias:z.array(z.string()).max(8),classificacao:z.literal(result.veredito)
+      feedback:z.string().trim().min(20).max(1800),referencias:z.array(z.string()).max(8),classificacao:z.literal(result.veredito),
+      contexto_juridico:z.unknown().optional()
     }).strict().parse(JSON.parse(output));
     if (parsed.destaques.some(id=>!ids.includes(id)) || new Set(parsed.destaques).size !== parsed.destaques.length ||
         parsed.referencias.some(id=>!sourceIds.includes(id)) || new Set(parsed.referencias).size !== parsed.referencias.length) throw new Error('UNSUPPORTED_REFERENCES');
     validateFeedback(parsed.feedback,payload);
+    let legal = {aplicavel:false,referencias:[]};
+    try { legal = validateLegalContext(parsed.contexto_juridico,{text,candidates,now:legalNow}); } catch { /* legal errors do not discard valid journalism */ }
     return {
+      contexto_juridico:legal,
       secoes:{...sections,resumo:parsed.resumo,orientacao:parsed.orientacao},
       geracao:{status:'ia',provedor:provider,modelo:model,metodo:'comentário complementar baseado nos dados da verificação',destaques:parsed.destaques},
       feedbackGemini:{texto:parsed.feedback,status:'ia',provedor:provider,modelo:model,referencias:parsed.referencias.map(id=>sources.find(source=>source.id === id))}
     };
-  } catch {
-    return fallback('A IA está indisponível ou retornou uma resposta fora do contrato; foi usada a explicação local.');
+  } catch (error) {
+    const messages = {
+      AI_CONFIG_ERROR:'A configuração do provedor ou do modelo precisa ser revisada no servidor.',
+      AI_AUTH_ERROR:'O provedor recusou a autenticação. A credencial e suas permissões precisam ser revisadas no servidor.',
+      AI_RATE_LIMIT:'O limite de uso do provedor foi atingido. Tente novamente mais tarde.',
+      AI_TIMEOUT:'O provedor ultrapassou o tempo de resposta ou a análise foi cancelada.',
+      AI_NETWORK_ERROR:'Não foi possível estabelecer comunicação com o provedor.',
+      AI_UNAVAILABLE:'O provedor está temporariamente indisponível. Tente novamente em instantes.',
+      AI_INVALID_RESPONSE:'O provedor não entregou uma resposta completa e válida; o comentário não foi apresentado.'
+    };
+    const codigo = Object.hasOwn(messages,error?.message) ? error.message : signal?.aborted ? 'AI_TIMEOUT' : 'AI_INVALID_RESPONSE';
+    return fallback(messages[codigo], 'indisponivel', codigo);
   }
 }
 

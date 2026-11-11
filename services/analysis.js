@@ -110,6 +110,7 @@ async function analyze(input,{
   result.secoes = generated.secoes;
   result.geracao = generated.geracao;
   result.feedbackGemini = generated.feedbackGemini;
+  result.contexto_juridico = generated.contexto_juridico || {aplicavel:false,referencias:[]};
   result.resumo = result.secoes.resumo;
   if (result.geracao.status === 'local' && process.env.ENABLE_AI_EXPLANATION === 'true') {
     result.limitacoes.push(result.geracao.motivo);

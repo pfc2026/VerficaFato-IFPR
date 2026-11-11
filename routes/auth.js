@@ -5,7 +5,10 @@ import User from '../models/User.js';
 import Verificacao from '../models/Verificacao.js';
 import { gerarToken, getSigningSecret, autenticarObrigatorio } from '../middleware/auth.js';
 import { textField, emailField, passwordField, currentPasswordField, httpUrl, validate, databaseError } from '../middleware/validation.js';
+import { createPasswordRecoveryRouter } from './password-recovery.js';
 const router = express.Router();
+router.use((req, res, next) => { res.set('Cache-Control', 'no-store'); next(); });
+router.use(createPasswordRecoveryRouter());
 const registerSchema = z.object({ nome: textField().min(2), email: emailField, senha: passwordField, cidade: textField().optional() }).strict();
 const loginSchema = z.object({ email: emailField, senha: currentPasswordField }).strict();
 const profileSchema = z.object({ nome: textField().min(2).optional(), email: emailField.optional(), cidade: textField().optional(), fotoPerfil: z.union([z.literal(''), httpUrl.refine(value => value.length <= 500)]).optional(), senhaAtual: currentPasswordField.optional() }).strict();
@@ -53,7 +56,8 @@ router.patch('/perfil', autenticarObrigatorio, async (req, res) => {
       if (!senhaAtual || !userWithPassword || !(await bcrypt.compare(senhaAtual, userWithPassword.senha))) return res.status(401).json({ sucesso: false, erro: 'Informe a senha atual correta para mudar o e-mail.' });
       if (await User.exists({ email: body.email, _id: { $ne: req.user._id } })) return res.status(409).json({ sucesso: false, erro: 'Esse e-mail já está em uso.' });
     }
-    const user = await User.findByIdAndUpdate(req.user._id, { $set: updates }, { new: true, runValidators: true });
+    const resetCleanup = body.email !== undefined ? { $unset: { resetPasswordTokenHash: '', resetPasswordExpiresAt: '', resetPasswordRequestedAt: '' } } : {};
+    const user = await User.findByIdAndUpdate(req.user._id, { $set: updates, ...resetCleanup }, { new: true, runValidators: true });
     if (!user) return res.status(404).json({ sucesso: false, erro: 'Usuário não encontrado.' });
     const count = await Verificacao.countDocuments({ userId: user._id });
     return res.json({ sucesso: true, mensagem: 'Perfil atualizado com sucesso.', usuario: dadosPublicos(user, count) });
@@ -65,7 +69,10 @@ router.patch('/senha', autenticarObrigatorio, async (req, res) => {
   try {
     const user = await User.findById(req.user._id).select('+senha');
     if (!user || !(await bcrypt.compare(body.senhaAtual, user.senha))) return res.status(401).json({ sucesso: false, erro: 'A senha atual está incorreta.' });
-    user.senha = await bcrypt.hash(body.novaSenha, 12); user.tokenVersion = (user.tokenVersion || 0) + 1; await user.save();
+    user.senha = await bcrypt.hash(body.novaSenha, 12); user.tokenVersion = (user.tokenVersion || 0) + 1;
+    user.resetPasswordTokenHash = undefined; user.resetPasswordExpiresAt = undefined; user.resetPasswordRequestedAt = undefined;
+    for (const field of ['resetPasswordTokenHash', 'resetPasswordExpiresAt', 'resetPasswordRequestedAt']) user.markModified?.(field);
+    await user.save();
     return res.json({ sucesso: true, mensagem: 'Senha alterada com sucesso. Entre novamente para continuar.' });
   } catch (error) { return databaseError(res, error, 'Não foi possível alterar a senha.'); }
 });

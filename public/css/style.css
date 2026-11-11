@@ -748,3 +748,16 @@ body { background-color: #172d31; }
 .restored-results .analysis-list { padding-left: 1.2rem; margin-bottom: 0; }
 .restored-results .analysis-limitations { opacity: .8; }
 .restored-results .result-disclaimer { font-size: .72rem; opacity: .5; }
+.restored-results .linguistic-comparisons summary { cursor: pointer; }
+.restored-results .comparison-pair { border-left: 2px solid var(--secondary); background: rgba(127,127,127,.06); border-radius: 0 8px 8px 0; }
+.restored-results .legal-context { border-left: 3px solid var(--secondary) !important; }
+.restored-results .legal-reference { border: 1px solid var(--border); border-radius: 10px; }
+.restored-results .legal-reference-summary { cursor: pointer; padding: .8rem; font-size: .88rem; }
+.restored-results .legal-reference-summary > strong { margin-right: .5rem; }
+.restored-results .legal-article { display: inline-block; margin-right: .5rem; }
+.restored-results .legal-category { display: block; font-size: .72rem; opacity: .75; margin-top: .2rem; }
+.restored-results .legal-reference-content { padding: 0 .8rem .8rem; font-size: .82rem; line-height: 1.65; }
+.restored-results .legal-reference-fields { margin-bottom: .75rem; }
+.restored-results .legal-reference-fields dt { margin-top: .6rem; font-weight: 700; }
+.restored-results .legal-reference-fields dd { margin: .15rem 0 0; white-space: pre-line; }
+.restored-results .legal-more-references > summary { cursor: pointer; padding: .4rem 0; }
