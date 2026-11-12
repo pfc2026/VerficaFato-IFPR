@@ -43,7 +43,9 @@ test('resultado restaura medidor, contadores e cartões da imagem com feedback s
   assert.equal(root.querySelector('.meter-percentage').textContent,'50%');
   assert.deepEqual([...root.querySelectorAll('.metric-value')].map(node=>node.textContent),['0','0','8','0']);
   assert.match(root.querySelector('.credibility-meter').textContent,/Padrões mistos no texto/);
-  assert.match(root.querySelector('.credibility-meter').textContent,/não representa probabilidade/);
+  assert.match(root.querySelector('.credibility-meter').textContent,/Possibilidade estimada de ser verdadeiro/);
+  assert.match(root.querySelector('.credibility-meter').textContent,/sem calibração estatística/);
+  assert.match(root.querySelector('.credibility-meter').textContent,/não confirma nem desmente/);
   assert.deepEqual([...root.querySelectorAll('.analysis-card strong')].map(node=>node.textContent),['0/100','0/100','8/100']);
   assert.match(root.querySelector('.news-information').textContent,/flavio bolsonaro teve um romance com o lula\?/);
   assert.match(root.querySelector('.text-characteristics').textContent,/8 palavra/);

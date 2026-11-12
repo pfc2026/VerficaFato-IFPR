@@ -88,7 +88,7 @@ export function createApp({ analyze = analisarConteudo, dbReady = () => mongoose
       if (req.user && dbReady()) {
         try {
           await Verificacao.create({ userId: req.user._id, texto: body.texto || body.link, cidade: body.cidade || '', categoria: body.categoria || '',
-            porcentagem: null, confianca: null, veredito: dados.veredito, explicacao: dados.explicacao || '', fonte: dados.fonte || 'analise',
+            porcentagem: dados.porcentagem ?? null, confianca: dados.confianca ?? null, veredito: dados.veredito, explicacao: dados.explicacao || '', fonte: dados.fonte || 'analise',
             dadosAPI: dados.resultados || [], schemaVer: 2, resultado: dados });
         } catch { dados.avisoHistorico = 'A análise foi concluída, mas não foi possível salvar no histórico.'; }
       }

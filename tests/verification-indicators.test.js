@@ -126,7 +126,7 @@ test('the analysis response exposes original indicators without replacing its fa
     explain: async data => { receivedVisual = data.analiseVisual; return localExplain(data); }
   }));
   assert.equal(result.veredito, 'Não verificável'); assert.equal(result.classificacao, 'Não verificável');
-  assert.equal(result.porcentagem, null); assert.equal(result.confianca, null);
+  assert.equal(result.porcentagem, 50); assert.equal(result.confianca, 'baixa');
   assert.equal(result.analiseVisual.porcentagem, 50); assert.equal(result.analiseVisual.veredito, 'Inconclusivo / Verificar');
   assert.equal(result.analiseVisual.quantidadePalavras, 8); assert.equal(receivedVisual, result.analiseVisual);
   assert.equal(result.analiseLocal, result.analiseVisual.analiseLocal); assert.equal(result.dimensoes, result.analiseVisual.dimensoes);
@@ -134,7 +134,7 @@ test('the analysis response exposes original indicators without replacing its fa
 
 test('real matching reviews feed visual weighting while related reviews and regional articles do not', async () => {
   const exact = await analisarConteudo({ texto: fact }, options({ check: async () => ({ apiDisponivel: true, resultados: [review()] }) }));
-  assert.equal(exact.veredito, 'Verdadeiro'); assert.equal(exact.porcentagem, null); assert.equal(exact.analiseVisual.porcentagem, 88);
+  assert.equal(exact.veredito, 'Verdadeiro'); assert.equal(exact.porcentagem, 88); assert.equal(exact.analiseVisual.porcentagem, 88);
   const related = await analisarConteudo({ texto: fact }, options({ check: async () => ({ apiDisponivel: true, resultados: [review('A prefeitura não anunciou uma nova escola em 2025.')] }) }));
   assert.equal(related.veredito, 'Sem evidências suficientes'); assert.equal(related.analiseVisual.porcentagem, 50);
   const regional = await analisarConteudo({ texto: fact }, options({ buscarRegionais: async () => [{ titulo: fact, fonte: 'Portal', url: 'https://regional.example.org/noticia' }] }));

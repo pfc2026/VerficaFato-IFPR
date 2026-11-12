@@ -35,6 +35,6 @@ O modelo recebe somente texto/contexto, candidatos, indicadores, fontes e limita
 
 ## Calibração e limites
 
-Não há conjunto rotulado, treinamento ou calibração que sustente probabilidade de verdade. porcentagem e confianca da classificação factual, na raiz da resposta, são null. O índice visual original fica em analiseVisual e é identificado como heurístico. Similaridade lexical também não é probabilidade factual.
+Não há conjunto rotulado, treinamento ou calibração que sustente uma probabilidade estatística de verdade. porcentagem e confianca expõem a estimativa heurística já calculada em analiseVisual, inclusive quando só há sinais textuais. A interface identifica a possibilidade estimada como heurística, sem calibração estatística, e mantém separada a conclusão pelas evidências. O percentual não confirma nem desmente o conteúdo. Similaridade lexical também não é probabilidade factual.
 
 A avaliação futura deve medir cobertura de afirmações, precisão/recall de correspondência, falsos pareamentos (negação, data, pessoa e local), erros por classe e desempenho por domínio, idioma e período, usando divisão temporal e controle de vazamento. Nenhuma métrica de qualidade factual foi inventada.

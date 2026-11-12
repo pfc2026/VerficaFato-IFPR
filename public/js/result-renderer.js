@@ -70,7 +70,10 @@ function getVisual(data) {
     texto:text(visual.texto)||text(data.texto)||text(data.resumo),
     analiseLocal:visual.analiseLocal||data.analiseLocal||{},
     dimensoes:visual.dimensoes||data.dimensoes||{},
-    explicacao:'O índice reúne sinais automáticos de linguagem, estrutura e referências. Um valor alto não confirma a mensagem; um valor baixo não prova que ela é falsa. A conclusão factual depende das evidências.',
+    explicacao:(visual.fonte==='api'
+      ? 'A estimativa considera checagens correspondentes e sinais do texto.'
+      : 'Sem checagens conclusivas, a estimativa considera somente sinais de linguagem, estrutura e referências do texto.')+
+      ' A porcentagem é heurística, sem calibração estatística. Ela pode errar; confira a conclusão pelas evidências e as fontes.',
     palette:verdict
   };
 }
@@ -105,26 +108,26 @@ function meter(visual,data) {
   const top=element('div','d-flex align-items-center justify-content-between mb-3 flex-wrap gap-2');
   const left=element('div');
   const title=element('div','d-flex align-items-center gap-2 mb-1');
-  title.append(icon(v.icone+' fs-4',v.cor),styled(element('span','fw-bold fs-5',data.legado?'Registro legado':visual.veredito),{color:v.cor}));
-  left.append(title,styled(element('small','','Indicadores de linguagem · não são uma conclusão factual'),{opacity:'0.8'}));
+  title.append(icon(v.icone+' fs-4',v.cor),styled(element('span','fw-bold fs-5',data.legado?'Registro legado':'Possibilidade estimada de ser verdadeiro'),{color:v.cor}));
+  left.append(title,styled(element('small','',visual.veredito+' · estimativa heurística'),{opacity:'0.8'}));
   const ring=styled(element('div','percentage-circle'),{
     width:'90px',height:'90px',borderRadius:'50%',
     background:'conic-gradient('+v.cor+' '+((visual.porcentagem??0)*3.6)+'deg, rgba(255,255,255,0.1) 0deg)',
     display:'flex',alignItems:'center',justifyContent:'center',boxShadow:'0 0 0 6px '+v.cor+'22'
   });
   const inner=styled(element('div'),{width:'66px',height:'66px',borderRadius:'50%',background:'var(--surface-solid,#16241b)',display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center'});
-  inner.append(styled(element('span','meter-percentage',visual.porcentagem===null?'—':visual.porcentagem+'%'),{fontSize:'1.4rem',fontWeight:'800',color:v.cor,lineHeight:'1'}),styled(element('span','','índice'),{fontSize:'0.55rem',opacity:'0.7',textTransform:'uppercase',color:'var(--text-main)'}));
+  inner.append(styled(element('span','meter-percentage',visual.porcentagem===null?'—':visual.porcentagem+'%'),{fontSize:'1.4rem',fontWeight:'800',color:v.cor,lineHeight:'1'}),styled(element('span','','estimado'),{fontSize:'0.55rem',opacity:'0.7',textTransform:'uppercase',color:'var(--text-main)'}));
   ring.append(inner);top.append(left,ring);card.append(top);
   const progress=styled(element('div','progress mb-1'),{height:'10px',borderRadius:'8px',background:'rgba(255,255,255,0.1)'});
   const bar=styled(element('div','progress-bar'),{width:(visual.porcentagem??0)+'%',background:'linear-gradient(90deg,'+v.cor+','+v.cor+'bb)',borderRadius:'8px'});
-  bar.setAttribute('role','progressbar');bar.setAttribute('aria-label','Índice heurístico de padrões');
+  bar.setAttribute('role','progressbar');bar.setAttribute('aria-label','Possibilidade estimada de ser verdadeiro (heurística)');
   bar.setAttribute('aria-valuenow',String(visual.porcentagem??0));bar.setAttribute('aria-valuemin','0');bar.setAttribute('aria-valuemax','100');
   progress.append(bar);card.append(progress);
   const scale=styled(element('div','d-flex justify-content-between mb-2'),{fontSize:'0.7rem',opacity:'0.6'});
   scale.append(element('span','','Mais alertas'),element('span','','Incerto'),element('span','','Mais sinais positivos'));card.append(scale);
   const explanation=styled(element('div','d-flex gap-2 align-items-start pt-2'),{borderTop:'1px solid '+v.cor+'22'});
   explanation.append(icon('fa-circle-info mt-1',v.cor),styled(element('small','meter-explanation',data.legado?data.justificativa:visual.explicacao),{opacity:'0.85',whiteSpace:'pre-line'}));card.append(explanation);
-  card.append(element('small','heuristic-disclaimer d-block mt-2','Índice de padrões; não representa probabilidade de veracidade.'));
+  card.append(element('small','heuristic-disclaimer d-block mt-2','Estimativa heurística, sem calibração estatística; não confirma nem desmente o conteúdo.'));
   return card;
 }
 function regional(data) {

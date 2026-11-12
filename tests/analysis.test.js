@@ -25,7 +25,7 @@ test('URL uses extracted content in the same TensorFlow pipeline',async()=>{
     check:checks([review()])
   }));
   assert.ok(extracted);assert.equal(nlpText,statement);assert.equal(result.tipoEntrada,'url');assert.equal(result.veredito,'Verdadeiro');
-  assert.equal(result.porcentagem,null);assert.equal(result.confianca,null);
+  assert.equal(result.porcentagem,88);assert.equal(result.confianca,'média');
 });
 test('full text and multiple claims are analyzed individually',async()=>{
   const seen=[];

@@ -1,5 +1,6 @@
 import http from 'node:http';
 import https from 'node:https';
+import { gunzipSync } from 'node:zlib';
 import { lookup as dnsLookup } from 'node:dns/promises';
 import { isIP } from 'node:net';
 import ipaddr from 'ipaddr.js';
@@ -92,7 +93,8 @@ export async function safeGet(input, {
           }
           const length = Number(res.headers['content-length']);
           if (Number.isFinite(length) && length > maxBytes) { res.destroy(); return fail(new HttpError(422, 'A página excede o tamanho permitido.', 'RESPONSE_TOO_LARGE')); }
-          if (res.headers['content-encoding'] && res.headers['content-encoding'] !== 'identity') {
+          const encoding = String(res.headers['content-encoding'] || 'identity').trim().toLowerCase();
+          if (!['identity', 'gzip'].includes(encoding)) {
             res.destroy(); return fail(new HttpError(422, 'A página enviou uma codificação não suportada.', 'ENCODING_BLOCKED'));
           }
           let bytes = 0; const chunks = [];
@@ -103,7 +105,14 @@ export async function safeGet(input, {
           });
           res.on('end', () => {
             if (settled) return;
-            settled = true; resolve({ url: url.href, status: res.statusCode, headers: res.headers, text: Buffer.concat(chunks).toString('utf8') });
+            let body = Buffer.concat(chunks);
+            if (encoding === 'gzip') {
+              try { body = gunzipSync(body, { maxOutputLength: maxBytes }); }
+              catch (error) {
+                return fail(new HttpError(422, error.code === 'ERR_BUFFER_TOO_LARGE' ? 'A página excede o tamanho permitido.' : 'A página enviou conteúdo compactado inválido.', error.code === 'ERR_BUFFER_TOO_LARGE' ? 'RESPONSE_TOO_LARGE' : 'ENCODING_INVALID'));
+              }
+            }
+            settled = true; resolve({ url: url.href, status: res.statusCode, headers: res.headers, text: body.toString('utf8') });
           });
           res.on('error', fail);
           res.on('aborted', () => fail(new HttpError(422, 'A página interrompeu a resposta.', 'RESPONSE_ABORTED')));

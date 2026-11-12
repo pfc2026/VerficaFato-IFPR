@@ -98,7 +98,7 @@ test('HTTP route → real TensorFlow → single mocked Gemini → shared DOM ren
   t.after(()=>new Promise(resolve=>{server.close(resolve);server.closeAllConnections();}));
   const response=await fetch(`http://127.0.0.1:${server.address().port}/api/verificar`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({texto:corruption})});
   const data=await response.json();assert.equal(response.status,200);assert.equal(data.sucesso,true);assert.equal(p.observed().calls,1);
-  assert.equal(data.dados.schemaVersion,2);assert.equal(data.dados.porcentagem,null);assert.ok(data.dados.analiseVisual);
+  assert.equal(data.dados.schemaVersion,2);assert.equal(data.dados.porcentagem,data.dados.analiseVisual.porcentagem);assert.ok(data.dados.analiseVisual);
   const dom=new JSDOM('<div id="result"></div>'),previous=globalThis.document;globalThis.document=dom.window.document;
   try {const root=document.getElementById('result');renderAnalysis(root,data.dados);assert.ok(root.querySelector('.legal-context'));assert.equal(root.querySelector('.gemini-feedback-text').textContent,safeFeedback);assert.equal(root.querySelectorAll('.analysis-card').length,3);}
   finally {globalThis.document=previous;dom.window.close();}

@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { EventEmitter } from 'node:events';
 import { Readable } from 'node:stream';
+import { gzipSync } from 'node:zlib';
 import { assertPublicUrl,parsePublicUrl,isPublicAddress,safeGet } from '../services/safe-http.js';
 const publicDNS=async()=>[{address:'93.184.216.34',family:4}];
 function stubTransport(responses,inspected=[]) {
@@ -54,4 +55,24 @@ test('redirect hook checks access rules for each public destination',async()=>{
     {status:302,headers:{location:'/b'}},{text:'article'}
   ])});
   assert.equal(result.text,'article');assert.deepEqual(checked,['https://news.example.org/a','https://news.example.org/b']);
+});
+
+test('gzip access rules are decoded with the original response-size limit', async () => {
+  const text = 'User-agent: *\nAllow: /\n';
+  const result = await safeGet('https://news.example.org/robots.txt', {
+    lookup: publicDNS, requestFn: stubTransport([{ headers: { 'content-encoding': 'gzip' }, chunks: [gzipSync(text)] }])
+  });
+  assert.equal(result.text, text);
+  await assert.rejects(() => safeGet('https://news.example.org/robots.txt', {
+    lookup: publicDNS, maxBytes: 100,
+    requestFn: stubTransport([{ headers: { 'content-encoding': 'gzip' }, chunks: [gzipSync('x'.repeat(10000))] }])
+  }), error => error.code === 'RESPONSE_TOO_LARGE');
+});
+
+test('invalid gzip and unsupported encodings still fail explicitly', async () => {
+  for (const [encoding, expected] of [['gzip', 'ENCODING_INVALID'], ['unsupported', 'ENCODING_BLOCKED']]) {
+    await assert.rejects(() => safeGet('https://news.example.org/robots.txt', {
+      lookup: publicDNS, requestFn: stubTransport([{ headers: { 'content-encoding': encoding }, text: 'invalid compressed body' }])
+    }), error => error.code === expected);
+  }
 });

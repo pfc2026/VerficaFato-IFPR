@@ -254,7 +254,7 @@ test('complete HTTP flow uses the real analysis pipeline and TensorFlow without 
   const {sucesso,dados}=await response.json();
   assert.equal(sucesso,true);assert.equal(dados.schemaVersion,2);
   assert.equal(dados.veredito,'Sem evidências suficientes');
-  assert.equal(dados.porcentagem,null);assert.equal(dados.analiseLinguagem.tensorflow.disponivel,true);
+  assert.equal(dados.porcentagem,50);assert.equal(dados.analiseLinguagem.tensorflow.disponivel,true);
   assert.equal(dados.geracao.status,'local');assert.ok(dados.afirmacoes.length);
   assert.ok(dados.secoes.limitacoes);assert.ok(dados.explicacao.includes('Resumo da análise'));
 });

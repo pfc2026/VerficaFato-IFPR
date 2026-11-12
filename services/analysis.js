@@ -104,7 +104,8 @@ async function analyze(input,{
   ];
   const analiseVisual = criarAnaliseVisual(text, { afirmacoes, classificacao: veredito, incompleta: incomplete });
   const result = {
-    schemaVersion:2,tipoEntrada:isUrl?'url':'texto',veredito,classificacao:veredito,porcentagem:null,confianca:null,
+    schemaVersion:2,tipoEntrada:isUrl?'url':'texto',veredito,classificacao:veredito,
+    porcentagem:analiseVisual.porcentagem,confianca:analiseVisual.confianca,
     justificativa,afirmacoes,resultados:reviews,encontrados:reviews.length > 0,quantidade:reviews.length,
     apiDisponivel:checks.length ? checks.every(c=>c.apiDisponivel) : null,
     erroAPI:checks.find(c=>!c.apiDisponivel)?.erroAPI,
