@@ -1,5 +1,5 @@
 import { element, button, appendSafeLink, safeWebUrl, sanitizeLessonHtml, showNotice } from './safe-dom.js';
-import { renderAnalysis, resultBadge } from './result-renderer.js';
+import { renderHistoryAnalysis, resultBadge } from './result-renderer.js';
 import { mostrarModalPerfil } from './account.js';
 const showAlert = showNotice;
 
@@ -401,7 +401,7 @@ function verDetalhesGlobal(idx) {
   const modalBody = document.getElementById('modalContent');
   if (!modalBody) return;
 
-  renderAnalysis(modalBody,item);
+  renderHistoryAnalysis(modalBody,item);
   bootstrap.Modal.getOrCreateInstance(document.getElementById('resultsModal')).show();
 }
 

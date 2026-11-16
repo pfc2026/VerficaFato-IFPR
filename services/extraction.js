@@ -3,6 +3,7 @@ import { load } from 'cheerio';
 import { safeGet, parsePublicUrl } from './safe-http.js';
 import { HttpError } from './errors.js';
 import { TTLCache } from './limits.js';
+import { NewsExtractor } from '../scraper/extractors.js';
 const robotsCache = new TTLCache({ ttlMs: 300000, maxEntries: 100 });
 const agent = 'VerificaFato';
 export async function obterConteudoDaUrl(input, { get = safeGet, signal } = {}) {
@@ -34,7 +35,6 @@ export async function obterConteudoDaUrl(input, { get = safeGet, signal } = {}) 
   // checked through robots.txt before every request, including redirects.
   // https://developers.google.com/search/docs/crawling-indexing/robots-meta-tag
   // Preserve article structure and JSON-LD extraction in the shared migrated collector.
-  const { NewsExtractor } = await import('../scraper/extractors.js');
   const extractor = NewsExtractor.fromHtml(response.text, response.url);
   const titulo = extractor.extractTitle() || '';
   const texto = extractor.extractText() || '';

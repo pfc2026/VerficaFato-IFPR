@@ -2,14 +2,15 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import NoticiaColetada from '../models/NoticiaColetada.js';
 import { regionalTerms, rankRegionalNews } from '../services/regional-news.js';
+import { reviewedArticle } from './fixtures/reviewed-article.js';
 
 const query = 'O vídeo de um domo não comprova que a Terra seja plana.';
 const longQuery = 'Circula nas redes sociais um vídeo que mostra uma construção em forma de domo. Na legenda, o autor afirma que o vídeo comprova que a Terra é plana. Mas isso não é verdade, de acordo com especialistas consultados pela reportagem. O vídeo foi registrado no Paraná e mostra pessoas em um local público. O autor da publicação disse que as imagens seriam prova de que existe um domo sobre a Terra. A construção faz parte de um parque de diversões e não tem relação com o formato do planeta.';
 const unrelated = [
   { titulo: 'Paciente recebe transfusão de sangue em hospital', texto: 'A família disse que o paciente foi atendido em um hospital no Paraná.', url: 'https://example.org/hospital' },
   { titulo: 'Casas são soterradas após temporal', texto: 'Um caso de deslizamento foi registrado na cidade. A casa ficou enterrada.', url: 'https://example.org/temporal' }
-];
-const related = { titulo: 'Domo em vídeo não prova Terra plana', texto: 'O domo é uma atração turística. A Terra não é plana.', url: 'https://example.org/domo' };
+].map(reviewedArticle);
+const related = reviewedArticle({ titulo: 'Domo em vídeo não prova Terra plana', texto: 'O domo é uma atração turística. A Terra não é plana.', url: 'https://example.org/domo' });
 
 function database(records) {
   return {
@@ -24,8 +25,8 @@ function database(records) {
 test('regional matching removes stop words, accent differences and substring matches', () => {
   assert.deepEqual(regionalTerms('A vídeo mostra notícias sobre a transfusão no Paraná.'), ['transfusao', 'parana']);
   assert.deepEqual(rankRegionalNews(unrelated, query), []);
-  assert.deepEqual(rankRegionalNews([{ titulo: 'Casa soterrada', texto: 'Terraplanagem na cidade', url: 'https://example.org/solo' }], 'Terra plana'), []);
-  assert.equal(rankRegionalNews([{ titulo: 'Transfusão no Paraná', texto: '' }], 'transfusao parana').length, 1);
+  assert.deepEqual(rankRegionalNews([reviewedArticle({ titulo: 'Casa soterrada', texto: 'Terraplanagem na cidade foi anunciada por uma equipe local.', url: 'https://example.org/solo' })], 'Terra plana'), []);
+  assert.equal(rankRegionalNews([reviewedArticle({ titulo: 'Transfusão no Paraná' })], 'transfusao parana').length, 1);
 });
 
 test('regional matching requires shared topic terms and ranks pertinent stories', () => {
@@ -48,7 +49,7 @@ test('the local archive returns no regional stories for an unrelated flat-Earth 
 });
 
 test('generic body overlap and one shared location never substitute for the actual topic', async () => {
-  const irrelevant = { titulo: 'Câmeras em banheiros de escolas do Paraná', texto: 'A forma do equipamento foi registrada de acordo com pessoas no local público. O formato e a prova foram apresentados para a comunidade.', url: 'https://example.org/camera' };
+  const irrelevant = reviewedArticle({ titulo: 'Câmeras em banheiros de escolas do Paraná', texto: 'A forma do equipamento foi registrada de acordo com pessoas no local público. O formato e a prova foram apresentados para a comunidade.', url: 'https://example.org/camera' });
   assert.deepEqual(rankRegionalNews([irrelevant], longQuery), []);
   assert.deepEqual(await NoticiaColetada.buscarCorrespondentes.call(database([irrelevant]), longQuery), []);
   assert.deepEqual(rankRegionalNews([irrelevant, related], longQuery).map(item => item.url), [related.url]);

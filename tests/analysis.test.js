@@ -7,6 +7,7 @@ import { analyzeLanguage, loadTensorflow, lexicalSimilarities } from '../service
 import { generateExplanation } from '../services/explanation.js';
 import { obterConteudoDaUrl } from '../services/extraction.js';
 import { TTLCache, createLimiter } from '../services/limits.js';
+import { reviewedArticle } from './fixtures/reviewed-article.js';
 const statement = 'A prefeitura anunciou uma nova escola em 2025.';
 const review = (texto=statement,avaliacao='Verdadeiro',suffix='a') => ({
   id:'e'+suffix,texto_verificado:texto,avaliacao,url_verificacao:'https://aosfatos.org/noticias/'+suffix,
@@ -24,7 +25,7 @@ test('URL uses extracted content in the same TensorFlow pipeline',async()=>{
     nlp:async(text,claims,reviews)=>{nlpText=text;return analyzeLanguage(text,claims,reviews);},
     check:checks([review()])
   }));
-  assert.ok(extracted);assert.equal(nlpText,statement);assert.equal(result.tipoEntrada,'url');assert.equal(result.veredito,'Verdadeiro');
+  assert.ok(extracted);assert.equal(nlpText,statement);assert.equal(result.tipoEntrada,'url');assert.equal(result.veredito,'Conteúdo verdadeiro');
   assert.equal(result.porcentagem,null);assert.equal(result.confianca,null);
 });
 test('full text and multiple claims are analyzed individually',async()=>{
@@ -40,7 +41,7 @@ test('isolated assertion without URL and no results stays inconclusive',async()=
 });
 test('sensational language never overrides matching factual evidence',async()=>{
   const r=await analisarConteudo({texto:'URGENTE!!! '+statement},options({check:checks([review()])}));
-  assert.equal(r.veredito,'Verdadeiro');assert.ok(r.analiseLinguagem.indicadores.length>0);
+  assert.equal(r.veredito,'Conteúdo verdadeiro');assert.ok(r.analiseLinguagem.indicadores.length>0);
 });
 test('neutral text contradicted by a matching review is false',async()=>{
   const r=await analisarConteudo({texto:statement},options({check:checks([review(statement,'Falso')])}));
@@ -76,7 +77,7 @@ test('dates, deictic context, and unrecognized publisher are guarded',()=>{
   assert.equal(evaluateClaim({...claim,texto:'A ponte foi interditada hoje.'},[review('A ponte foi interditada hoje.')]).veredito,'Sem evidências suficientes');
 });
 test('regional article matches supply context without factual promotion',async()=>{
-  const r=await analisarConteudo({texto:statement},options({buscarRegionais:async()=>[{titulo:statement,url:'https://noticias.example.org/materia',fonte:'jornal'}]}));
+  const r=await analisarConteudo({texto:statement},options({buscarRegionais:async()=>[reviewedArticle({titulo:statement,url:'https://noticias.example.org/materia',fonte:'jornal'})]}));
   assert.equal(r.veredito,'Sem evidências suficientes');assert.equal(r.fontes[0].tipo,'noticia');
 });
 test('partial API results never hide unavailable contradictory evidence',async()=>{
@@ -193,13 +194,13 @@ test('configured LLM generates feedback while preserving authorized factual sect
     const texts=sent.text.format.schema.properties;
     return new Response(JSON.stringify({status:'completed',output:[{content:[{type:'output_text',text:JSON.stringify({
       resumo:texts.resumo.enum[0],orientacao:texts.orientacao.enum[0],destaques:['a1'],
-      feedback:'A análise não oferece elementos para uma conclusão. Consulte as fontes originais antes de compartilhar.',referencias:[],classificacao:base.veredito
+      feedback:texts.feedback.enum[0],referencias:[],classificacao:base.veredito
     })}]}]}));
   }});
   assert.equal(result.geracao.status,'ia');assert.ok(result.secoes.resultado.includes(base.veredito));
   assert.deepEqual(result.geracao.destaques,['a1']);
   assert.equal(result.feedbackGemini.status,'ia');
-  assert.equal(result.feedbackGemini.texto,'A análise não oferece elementos para uma conclusão. Consulte as fontes originais antes de compartilhar.');
+  assert.match(result.feedbackGemini.texto,/não confirma nem desmente/);
   assert.deepEqual(result.feedbackGemini.referencias,[]);
 });
 

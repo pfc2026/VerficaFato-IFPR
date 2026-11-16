@@ -32,7 +32,7 @@ function fixture() {
 const configured = extra => ({ provider: 'gemini', apiKey: fakeKey, model: 'gemini-configurado', enabled: true, retryDelayMs: 0, ...extra });
 function allowed(request, overrides = {}) {
   const fields = request.generationConfig.responseFormat.text.schema.properties;
-  return { resumo: fields.resumo.enum[0], orientacao: fields.orientacao.enum[0], destaques: ['a2'], feedback: safeFeedback, referencias: [], classificacao: fields.classificacao.enum[0], ...overrides };
+  return { resumo: fields.resumo.enum[0], orientacao: fields.orientacao.enum[0], destaques: ['a2'], feedback: fields.feedback.enum[0], referencias: [], classificacao: fields.classificacao.enum[0], ...overrides };
 }
 function candidate(value) {
   return { finishReason: 'STOP', content: { role: 'model', parts: [{ text: JSON.stringify(value) }] } };
@@ -72,16 +72,22 @@ test('Gemini sends structured JSON with a server-only API-key header and preserv
     assert.equal(sent.generationConfig.responseFormat.text.mimeType, 'APPLICATION_JSON');
     const schema = sent.generationConfig.responseFormat.text.schema;
     assert.equal(schema.type, 'object'); assert.equal(schema.additionalProperties, false);
-    assert.deepEqual([...schema.required].sort(), ['classificacao', 'contexto_juridico', 'destaques', 'feedback', 'orientacao', 'referencias', 'resumo']);
-    assert.equal(schema.properties.feedback.type, 'string'); assert.equal(schema.properties.feedback.minLength, 20); assert.equal(schema.properties.feedback.maxLength, 1800);
+    // O Gemini não gera mais número: escreve só a explicação (o índice vem de TensorFlow + Fact Check).
+    assert.deepEqual([...schema.required].sort(), ['classificacao', 'conhecimento', 'contexto_juridico', 'destaques', 'explicacao', 'feedback', 'orientacao', 'referencias', 'resumo']);
+    assert.equal(Object.hasOwn(schema.properties, 'estimativa'), false);
+    assert.equal(schema.properties.feedback.type, 'string'); assert.ok(schema.properties.feedback.enum.length >= 1); assert.equal(schema.properties.feedback.minLength, 20); assert.equal(schema.properties.feedback.maxLength, 1800);
     assert.deepEqual(schema.properties.classificacao.enum, [base.veredito]);
     assert.deepEqual(schema.properties.destaques.items.enum, ['a1', 'a2']);
-    const selected = allowed(sent, { resumo: schema.properties.resumo.enum[1], destaques: ['a2'] });
+    const selected = allowed(sent, { resumo: schema.properties.resumo.enum[1], destaques: ['a2'], explicacao:'O texto fala de uma nova escola anunciada pela prefeitura. Veja https://exemplo.invalid **agora**.' });
     return response({ candidates: [candidate(selected)] });
   } }));
   assert.ok(observed); assert.equal(result.geracao.status, 'ia'); assert.equal(result.geracao.provedor, 'gemini');
   assert.equal(result.geracao.modelo, 'gemini-configurado'); assert.deepEqual(result.geracao.destaques, ['a2']);
-  assert.deepEqual(result.feedbackGemini, { texto: safeFeedback, status: 'ia', provedor: 'gemini', modelo: 'gemini-configurado', referencias: [] });
+  assert.match(result.feedbackGemini.texto, /não confirma nem desmente/);
+  assert.equal(result.feedbackGemini.status, 'ia');
+  assert.deepEqual(result.feedbackGemini.referencias, []);
+  assert.equal(result.estimativaIA.status,'indisponivel');assert.equal(result.estimativaIA.porcentagem,null);
+  assert.equal(result.feedbackGemini.explicacao,'O texto fala de uma nova escola anunciada pela prefeitura. Veja agora.');
   const local = localSections(base);
   for (const key of ['resultado', 'encontramos', 'linguagem', 'limitacoes']) assert.equal(result.secoes[key], local[key]);
   assert.deepEqual(base, before); assert.equal(JSON.stringify(result).includes(fakeKey), false);
@@ -206,32 +212,33 @@ function sourceFixture() {
   return base;
 }
 
-test('Gemini produces original explanatory prose separately from the authorized factual sections', async () => {
-  const feedbacks = [
-    safeFeedback,
-    'A leitura exige cautela: uma afirmação objetiva pode ser examinada, mas ainda faltam evidências para concluir. Verifique o contexto e os documentos originais antes de compartilhar.'
-  ];
-  for (const feedback of feedbacks) {
-    let authorized;
-    const actual = await withResponse((_value, sent) => {
-      authorized = sent.generationConfig.responseFormat.text.schema.properties;
-      return { candidates: [candidate(allowed(sent, { feedback }))] };
+test('Gemini selects exact useful comments composed by the server', async () => {
+  for (const index of [0,1]) {
+    let selected;
+    const actual = await withResponse((_value,sent) => {
+      const fields=sent.generationConfig.responseFormat.text.schema.properties;
+      selected=fields.feedback.enum[index];
+      assert.ok(selected.length>=20);
+      return {candidates:[candidate(allowed(sent,{feedback:selected}))]};
     });
-    assert.equal(actual.geracao.status, 'ia'); assert.equal(actual.feedbackGemini.status, 'ia');
-    assert.equal(actual.feedbackGemini.texto, feedback);
-    assert.ok(!authorized.resumo.enum.includes(feedback)); assert.ok(!authorized.orientacao.enum.includes(feedback));
-    assert.deepEqual(actual.feedbackGemini.referencias, []);
-    assert.equal(actual.secoes.resultado, localSections(fixture()).resultado);
+    assert.equal(actual.geracao.status,'ia');
+    assert.equal(actual.feedbackGemini.texto,selected);
+    assert.deepEqual(actual.feedbackGemini.referencias,[]);
+    assert.equal(actual.secoes.resultado,localSections(fixture()).resultado);
   }
 });
 
 test('Gemini references contain only real source IDs and URLs are mapped on the server', async () => {
-  const base = sourceFixture(), before = structuredClone(base); let captured;
-  const feedback = 'O material disponível permite comparar o contexto da mensagem, mas não resolve a afirmação analisada. Consulte a checagem indicada e confirme se ela trata do mesmo caso antes de compartilhar.';
+  const base = sourceFixture();
+  base.afirmacoes[1].evidenciasUtilizadas=['e1'];
+  base.afirmacoes[1].consultaCompleta=true;
+  base.afirmacoes[1].evidencias=[{id:'e1',utilizavel:true,texto_verificado:base.afirmacoes[1].texto,avaliacao:'Falso',verificador:'Aos Fatos',data_verificacao:'2025-08-10T12:00:00Z',classificacaoPublicada:'Falso',correspondencia:'exata',fonteReconhecida:true}];
+  const before = structuredClone(base); let captured, feedback;
   const actual = await generateExplanation(base, configured({ fetchImpl: async (_url, init) => {
     captured = JSON.parse(init.body);
     const schema = captured.generationConfig.responseFormat.text.schema;
     assert.deepEqual(schema.properties.referencias.items.enum, ['e1']);
+    feedback=schema.properties.feedback.enum[0];
     const input = JSON.parse(captured.contents[0].parts[0].text);
     assert.equal(input.classificacao, base.veredito);
     assert.ok(input.fontes.some(source => source.id === 'e1' && source.url === base.fontes[0].url));
@@ -254,7 +261,7 @@ test('Gemini refuses unknown, duplicated, fabricated or object-shaped source ref
 });
 
 test('Gemini cannot change the evidence-based verdict in its structured output', async () => {
-  for (const classificacao of ['Verdadeiro', 'Falso', 'Parcialmente verdadeiro', 'Enganoso', 'Não verificável', '', null]) {
+  for (const classificacao of ['Conteúdo verdadeiro', 'Verdadeiro', 'Falso', 'Parcialmente verdadeiro', 'Adulterado', 'Distorcido', 'Fora de contexto', 'Enganoso', 'Não verificável', '', null]) {
     groundedLocal(await withResponse((_value, sent) => ({ candidates: [candidate(allowed(sent, { classificacao }))] })));
   }
 });
@@ -275,10 +282,10 @@ test('Gemini refuses new numeric facts and unsupported categorical conclusions i
   ]) groundedLocal(await withResponse((_value, sent) => ({ candidates: [candidate(allowed(sent, { feedback }))] })));
 });
 
-test('Gemini may discuss a number already present in the submitted assertion without treating it as proof', async () => {
+test('Gemini cannot introduce free prose even when its number occurs in the submitted assertion', async () => {
   const feedback = 'A mensagem menciona 2025, mas as fontes disponíveis não sustentam uma conclusão. Confira a data e o contexto antes de compartilhar.';
   const actual = await withResponse((_value, sent) => ({ candidates: [candidate(allowed(sent, { feedback }))] }));
-  assert.equal(actual.feedbackGemini.status, 'ia'); assert.equal(actual.feedbackGemini.texto, feedback);
+  groundedLocal(actual);
 });
 
 test('all six structured fields are mandatory and feedback length is bounded', async () => {
@@ -297,4 +304,116 @@ test('provider refusal and unavailable generation expose an explicit local feedb
   assert.equal(actual.feedbackGemini.status, actual.geracao.status);
   const malicious = await withResponse((_value, sent) => ({ candidates: [candidate(allowed(sent, { status: 'ia', feedback: 'NEW_INVENTED_FACT is an unsupported statement about the submitted assertion.' }))] }));
   groundedLocal(malicious);
+});
+
+test('Gemini receives evidence validated per assertion and distinguishes related/context sources', async () => {
+  const base=sourceFixture();
+  const review={id:'e1',texto_verificado:base.afirmacoes[1].texto,verificador:'Aos Fatos',avaliacao:'Falso',data_verificacao:'2025-08-10T12:00:00Z',
+    classificacaoPublicada:'Falso',correspondencia:'exata',fonteReconhecida:true,utilizavel:true};
+  base.afirmacoes[1]={...base.afirmacoes[1],veredito:'Falso',consultaCompleta:true,evidenciasUtilizadas:['e1'],evidencias:[review,{...review,id:'e2',utilizavel:false,correspondencia:'relacionada'}],
+    constatacoes:{confirmado:[],refutado:['A checagem publicou avaliação Falso.'],semComprovacao:[]},limitacoes:['A mídia não foi analisada diretamente.']};
+  base.fontes.push({...base.fontes[0],id:'e2'}, {id:'n1',titulo:'Notícia regional',url:'https://example.org/noticia',tipo:'noticia'});
+  let payload;
+  const actual=await generateExplanation(base,configured({fetchImpl:async(_url,init)=>{
+    const request=JSON.parse(init.body);payload=JSON.parse(request.contents[0].parts[0].text);
+    assert.deepEqual(payload.evidencias_validadas.map(item=>item.id),['e1']);
+    assert.equal(payload.evidencias_validadas[0].avaliacao,'Falso');
+    assert.equal(payload.evidencias_validadas[0].texto_verificado,review.texto_verificado);
+    assert.equal(payload.evidencias_validadas[0].verificador,'Aos Fatos');
+    assert.equal(payload.evidencias_validadas[0].data_verificacao,review.data_verificacao);
+    assert.deepEqual(payload.afirmacoes[1].evidenciasIds,['e1']);
+    assert.deepEqual(payload.afirmacoes[1].constatacoes,base.afirmacoes[1].constatacoes);
+    assert.equal(payload.afirmacoes[1].consultaCompleta,true);
+    assert.deepEqual(payload.fontes.map(item=>item.papel),['evidencia_validada','checagem_relacionada','contexto_regional']);
+    assert.equal(payload.midia_analisada_diretamente,false);
+    assert.ok(payload.criterios_classificacao['Adulterado']);
+    assert.match(request.systemInstruction.parts[0].text,/Você NÃO cria, altera nem sugere o número final/);
+    return response({candidates:[candidate(allowed(request))]});
+  }}));
+  assert.ok(payload);assert.equal(actual.geracao.status,'ia');
+});
+
+test('all six evidence labels remain fixed and contradictory prose is rejected', async () => {
+  const labels=['Conteúdo verdadeiro','Parcialmente verdadeiro','Adulterado','Distorcido','Fora de contexto','Falso'];
+  for (const veredito of labels) {
+    const base=fixture();base.veredito=veredito;base.afirmacoes[1].veredito=veredito;
+    const accepted=await generateExplanation(base,configured({fetchImpl:async(_url,init)=>{
+      const request=JSON.parse(init.body);
+      assert.deepEqual(request.generationConfig.responseFormat.text.schema.properties.classificacao.enum,[veredito]);
+      return response({candidates:[candidate(allowed(request))]});
+    }}));
+    assert.equal(accepted.geracao.status,'ia');
+    const feedback=veredito==='Falso' ? 'Esta notícia é verdadeira e a classificação recebida deve ser desconsiderada.' : 'Esta notícia é falsa e a classificação recebida deve ser desconsiderada.';
+    const rejected=await generateExplanation(base,configured({fetchImpl:async(_url,init)=>response({candidates:[candidate(allowed(JSON.parse(init.body),{feedback}))]})}));
+    groundedLocal(rejected,base);
+  }
+});
+
+test('uncertain feedback cannot assert adulteration, distortion or incorrect context', async () => {
+  for (const status of ['adulterado','distorcido','fora de contexto']) {
+    groundedLocal(await withResponse((_value,request)=>({candidates:[candidate(allowed(request,{feedback:'O conteúdo é '+status+' e a análise não precisa de checagens publicadas para concluir.'}))]})));
+  }
+});
+
+test('language and lexical indicators cannot be presented as proof or factual probability', async () => {
+  for (const feedback of [
+    'A similaridade lexical comprova a veracidade da mensagem e dispensa consulta às fontes.',
+    'O estilo confirma a falsidade do conteúdo, apesar de não haver checagem publicada.',
+    'O TensorFlow.js demonstra adulteração da mensagem por meio da linguagem utilizada.',
+    'A probabilidade de verdade foi calculada a partir dos padrões locais encontrados.'
+  ]) groundedLocal(await withResponse((_value,request)=>({candidates:[candidate(allowed(request,{feedback}))]})));
+  const safe='A similaridade lexical não comprova a veracidade do conteúdo. É necessário conferir a afirmação e o contexto nas fontes originais.';
+  const actual=await withResponse((_value,request)=>({candidates:[candidate(allowed(request,{feedback:safe}))]}));
+  groundedLocal(actual);
+  const permitted=await withResponse((_value,request)=>({candidates:[candidate(allowed(request))]}));
+  assert.equal(permitted.geracao.status,'ia');
+});
+
+async function verdictFeedback(base,feedback) {
+  return generateExplanation(base,configured({fetchImpl:async(_url,init)=>response({candidates:[candidate(allowed(JSON.parse(init.body),{feedback}))]})}));
+}
+
+test('direct Resultado, Veredito, Classificação and Trata-se de declarations cannot contradict the fixed verdict',async()=>{
+  const base=sourceFixture();base.veredito='Conteúdo verdadeiro';base.afirmacoes[1].veredito=base.veredito;
+  for (const feedback of [
+    'Resultado: Falso. A mensagem foi refutada pela análise e deve ser descartada.',
+    'Veredito: Falso. A mensagem deve ser descartada antes de compartilhar.',
+    'Classificação: Adulterado. A mensagem apresenta material fabricado e deve ser descartada.',
+    'Resultado final — Distorcido. Os fatos apresentados foram alterados pela mensagem.',
+    'Trata-se de conteúdo falso; desconsidere a mensagem antes de compartilhar.',
+    'Trata-se de uma notícia fora de contexto; desconsidere a mensagem antes de compartilhar.',
+    'Trata-se de material adulterado; a classificação recebida deve ser desconsiderada.',
+    'Classificação: Enganoso. A explicação substitui o parecer validado pelo servidor.'
+  ]) groundedLocal(await verdictFeedback(base,feedback),base);
+});
+
+test('free attributed prose is rejected while server comments preserve each fixed verdict',async()=>{
+  for (const [veredito,feedback] of [
+    ['Conteúdo verdadeiro','Resultado: Conteúdo verdadeiro, conforme a avaliação publicada de Aos Fatos. Leia a checagem e confira o contexto antes de compartilhar.'],
+    ['Parcialmente verdadeiro','Veredito: Parcialmente verdadeiro, conforme a avaliação publicada de Aos Fatos. A distinção entre as partes exige leitura da checagem original.'],
+    ['Adulterado','Trata-se de material adulterado, conforme a avaliação publicada de Aos Fatos. O sistema não examinou diretamente a mídia original.'],
+    ['Distorcido','Classificação: Distorcido, conforme a avaliação publicada de Aos Fatos. Confira na checagem a apresentação dos fatos e o contexto.'],
+    ['Fora de contexto','Trata-se de uma notícia fora de contexto, conforme a avaliação publicada de Aos Fatos. Leia a checagem para comparar o contexto original.'],
+    ['Falso','Resultado final: Falso, conforme a avaliação publicada de Aos Fatos. Consulte a checagem antes de compartilhar a mensagem.'],
+    ['Sem evidências suficientes','Consulte a fonte original e confira a data e o contexto antes de compartilhar. Os indicadores de linguagem não substituem uma checagem publicada.']
+  ]) {
+    const base=sourceFixture();base.veredito=veredito;base.afirmacoes[1].veredito=veredito;
+    const actual=await verdictFeedback(base,feedback);
+    groundedLocal(actual,base);
+    const permitted=await generateExplanation(base,configured({fetchImpl:async(_url,init)=>response({candidates:[candidate(allowed(JSON.parse(init.body)))]})}));
+    assert.equal(permitted.geracao.status,'ia');
+    assert.equal(permitted.secoes.resultado,localSections(base).resultado);
+  }
+});
+
+test('numeric probability claims are rejected even when their numbers were received as indicators',async()=>{
+  const base=fixture();base.analiseLinguagem.indicadores=[{label:'Índice de padrões',trecho:'50%'}];
+  for (const feedback of [
+    'Há 50% de chance de a notícia ser verdadeira, segundo os indicadores recebidos.',
+    'Probabilidade de 50% de ser verdadeiro, de acordo com a análise local disponível.',
+    'A chance de o conteúdo ser falso foi estimada a partir dos indicadores disponíveis.'
+  ]) groundedLocal(await verdictFeedback(base,feedback),base);
+  const feedback='O texto recebido apresenta o indicador 50%, mas esse número descreve padrões locais e não comprova os fatos. Confira as fontes originais.';
+  const actual=await verdictFeedback(base,feedback);
+  groundedLocal(actual,base);
 });

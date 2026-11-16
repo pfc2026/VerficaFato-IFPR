@@ -6,6 +6,7 @@ import { initLogin, validateNewPassword } from '../public/js/login.js';
 import { shareSite } from '../public/js/share.js';
 import { renderAnalysis } from '../public/js/result-renderer.js';
 import { criarAnaliseVisual } from '../services/verification-indicators.js';
+import { analysisFixture } from './helpers/analysis-fixture.js';
 import { initEducation } from '../public/js/education.js';
 import { lessons } from '../public/js/education-content.js';
 
@@ -105,18 +106,18 @@ test('publicação enviada é distinta das referências no corpo e IA desativada
   const dom = new JSDOM('<div id="result"></div>');
   globalThis.document = dom.window.document;
   const root = dom.window.document.getElementById('result');
-  renderAnalysis(root, {
+  renderAnalysis(root, analysisFixture({
     schemaVersion: 2, noticiasRegionais: [{ titulo: 'Exemplo regional', fonte: 'g1_parana', data_publicacao: '2026-11-04T10:30:00Z' }],
     analiseVisual: criarAnaliseVisual('Esta matéria descreve uma pesquisa científica com observações que podem ser investigadas.'),
     noticia: { url: 'https://example.com/materia', conteudoObtido: true },
     geracao: { status: 'local', motivo: 'IA opcional não configurada.' },
-    feedbackGemini: { status: 'local', texto: 'O Gemini não pôde gerar um comentário nesta tentativa.' }
-  });
+    feedbackGemini: { status: 'local', texto: 'O Gemini não pôde gerar um comentário nesta tentativa.', referencias: [] }
+  }));
   assert.match(root.querySelector('.article-source').textContent, /Endereço da publicação enviada/);
-  assert.match(root.querySelector('.analysis-overview').textContent, /Referências citadas no texto/);
-  assert.match(root.querySelector('.analysis-overview').textContent, /endereço da publicação enviada é exibido separadamente/);
+  assert.equal(root.querySelector('.analysis-overview'),null);
+  assert.ok(root.querySelector('.article-source').closest('.result-details'));
   assert.doesNotMatch(root.textContent, /Não há link de fonte no conteúdo enviado/);
-  assert.match(root.querySelector('.gemini-feedback').textContent, /está desativado/);
+  assert.match(root.querySelector('.gemini-feedback').textContent, /está desativada/);
   assert.doesNotMatch(root.querySelector('.gemini-feedback').textContent, /nesta tentativa/);
   assert.match(root.querySelector('.regional-findings').textContent, /G1 Paraná · 04\/11\/2026/);
   dom.window.close();

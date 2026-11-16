@@ -1,12 +1,21 @@
 import { element, appendSafeLink } from './safe-dom.js';
-import { lessons } from './education-content.js';
-import { recommendedLessons, isLessonAvailable } from './education.js';
+import { assertAnalysisResult } from './result-contract.js';
+import { assertAiEstimate, estimateClassification } from './ai-estimate.js';
 
 const list = value => Array.isArray(value) ? value : [];
 const text = value => typeof value === 'string' ? value : '';
-const FACTUAL = new Set(['Verdadeiro','Falso','Parcialmente verdadeiro','Enganoso','Sem evidências suficientes','Não verificável']);
+const VERDICT_HELP = Object.freeze({
+  'Conteúdo verdadeiro':'A afirmação e seus detalhes relevantes são confirmados por evidências confiáveis, com data, local, autoria e contexto coerentes.',
+  'Parcialmente verdadeiro':'A mesma afirmação reúne partes comprovadas e erros relevantes. Resultados diferentes de afirmações independentes não bastam para esta classificação.',
+  'Adulterado':'Há evidência de modificação ou fabricação do material que altera seu significado. Aparência, estilo ou suspeita de IA não comprovam adulteração.',
+  'Distorcido':'Fatos ou dados reais são apresentados com exagero, comparação inadequada, omissão decisiva ou interpretação enganosa.',
+  'Fora de contexto':'Um conteúdo autêntico é atribuído a outra data, local, pessoa ou situação, ou perde o contexto original necessário.',
+  'Falso':'A afirmação central é contradita por evidências confiáveis ou descreve um fato comprovadamente inventado.',
+  'Sem evidências suficientes':'Faltam evidências pertinentes, há conflito entre fontes ou a consulta incompleta impede uma conclusão.',
+  'Não verificável':'Não foi identificada uma afirmação factual objetivamente verificável, como em opiniões ou previsões. A extração automática pode falhar.'
+});
+const FACTUAL = new Set(Object.keys(VERDICT_HELP));
 const COLORS = { green:'#27AE60', yellow:'#F39C12', orange:'#E67E22', red:'#E74C3C', blue:'#3498DB' };
-const percent = value => typeof value === 'number' && Number.isFinite(value) ? Math.max(0,Math.min(100,Math.round(value))) : null;
 const count = value => typeof value === 'number' && Number.isFinite(value) ? Math.max(0,Math.floor(value)) : 0;
 const regionalNames = { g1_parana: 'G1 Paraná', o_parana: 'Jornal O Paraná', gazeta_do_povo: 'Gazeta do Povo', jornal_de_toledo: 'Jornal de Toledo', radio_colmeia: 'Rádio Colmeia (Cascavel)', radio_cultura_toledo: 'Rádio Cultura Toledo' };
 function publicationDate(value) {
@@ -40,18 +49,15 @@ function panel(className='') {
     background:'var(--card-bg,rgba(255,255,255,0.06))',border:'1px solid var(--border,rgba(255,255,255,0.12))',borderRadius:'14px'
   });
 }
-function visualVerdict(pct) {
-  if(pct === null)return {cor:COLORS.yellow,bg:'rgba(243,156,18,0.15)',label:'Indicadores indisponíveis',icone:'fa-circle-question'};
-  if(pct>=75)return {cor:COLORS.green,bg:'rgba(39,174,96,0.15)',label:'Mais referências e sinais formais',icone:'fa-chart-simple'};
-  if(pct>=55)return {cor:'#7DCB7A',bg:'rgba(125,203,122,0.15)',label:'Alguns sinais formais no texto',icone:'fa-chart-simple'};
-  if(pct>=40)return {cor:COLORS.yellow,bg:'rgba(243,156,18,0.15)',label:'Padrões mistos no texto',icone:'fa-chart-simple'};
-  if(pct>=20)return {cor:COLORS.orange,bg:'rgba(230,126,34,0.15)',label:'Padrões que pedem atenção',icone:'fa-triangle-exclamation'};
-  return {cor:COLORS.red,bg:'rgba(231,76,60,0.15)',label:'Mais padrões de alerta',icone:'fa-triangle-exclamation'};
-}
 export function normalizeResult(record={}) {
   const source=record&&typeof record==='object'?record:{};
-  if(source.resultado?.schemaVersion===2)return source.resultado;
-  if(source.schemaVersion===2)return source;
+  const stored=source.resultado?.schemaVersion===2 ? source.resultado : source.schemaVersion===2 ? source : null;
+  if(stored){
+    if(stored.veredito==='Enganoso')return {...stored,veredito:'Sem evidências suficientes',classificacao:'Sem evidências suficientes',
+      justificativa:'O registro anterior usava o rótulo genérico “Enganoso”, que não distingue adulteração, distorção e contexto incorreto.',
+      avisoHistorico:'A classificação anterior não foi remapeada. Faça uma nova consulta para avaliar os critérios atuais.'};
+    return stored.veredito==='Verdadeiro' ? {...stored,veredito:'Conteúdo verdadeiro',classificacao:'Conteúdo verdadeiro',avisoHistorico:'Classificação registrada anteriormente como “Verdadeiro”, sem nova consulta às fontes.'} : stored;
+  }
   return {
     schemaVersion:1,legado:true,veredito:'Sem evidências suficientes',
     texto:text(source.texto),
@@ -62,21 +68,13 @@ export function normalizeResult(record={}) {
 }
 function getVisual(data) {
   const visual=data.analiseVisual&&typeof data.analiseVisual==='object'?data.analiseVisual:{};
-  const pct=percent(visual.porcentagem);
-  const verdict=visualVerdict(pct);
-  return {
-    ...visual,porcentagem:pct,
-    veredito:verdict.label,
-    texto:text(visual.texto)||text(data.texto)||text(data.resumo),
-    analiseLocal:visual.analiseLocal||data.analiseLocal||{},
-    dimensoes:visual.dimensoes||data.dimensoes||{},
-    explicacao:'O índice reúne sinais automáticos de linguagem, estrutura e referências. Um valor alto não confirma a mensagem; um valor baixo não prova que ela é falsa. A conclusão factual depende das evidências.',
-    palette:verdict
-  };
+  return {texto:text(visual.texto)||text(data.texto)||text(data.resumo),analiseLocal:visual.analiseLocal||data.analiseLocal||{}};
 }
 export function resultLabel(record) {
   const data=normalizeResult(record);
   if(data.legado)return 'Registro legado';
+  const estimate=validEstimate(data);
+  if(estimate)return estimate.classificacao;
   return FACTUAL.has(data.veredito)?data.veredito:'Sem evidências suficientes';
 }
 export function resultBadge(record) {
@@ -86,46 +84,83 @@ export function resultBadge(record) {
   else badge.classList.add('bg-secondary');
   return badge;
 }
-function header(data,visual) {
-  const row=element('div','mb-3 d-flex align-items-center gap-2 flex-wrap');
-  const tag=(label,className,name)=>{const node=element('span','badge '+className);if(name)node.append(icon(name));node.append(document.createTextNode(label));row.append(node);};
-  if(data.legado)tag('Registro legado','bg-secondary','fa-clock me-1');
-  else if(data.apiDisponivel===false)tag('Google indisponível','bg-warning text-dark fs-6','fa-cloud-slash me-1');
-  else if(list(data.resultados).length){tag('Verificações encontradas','bg-success fs-6','fa-check-circle me-1');tag(list(data.resultados).length+' resultado(s)','bg-secondary');}
-  else tag('Análise local aplicada','bg-warning text-dark fs-6','fa-magnifying-glass me-1');
-  const info={cor:COLORS.blue,label:'Análise automática'};
-  const badge=styled(element('span','badge'),{background:info.cor+'22',color:info.cor,border:'1px solid '+info.cor+'55'});
-  badge.append(icon('fa-gauge-high me-1'),document.createTextNode(info.label));
-  row.append(badge);
-  return row;
+function validEstimate(data) {
+  const estimate=data.estimativaIA;
+  if(data.legado||estimate?.status!=='disponivel')return null;
+  try {assertAiEstimate(estimate,{result:data});}
+  catch {return null;}
+  return estimate.classificacao===estimateClassification(estimate.porcentagem)?estimate:null;
 }
-function meter(visual,data) {
-  const v=visual.palette;
-  const card=styled(element('section','credibility-meter p-4 mb-3'),{background:v.bg,border:'1px solid '+v.cor+'33',borderRadius:'16px'});
-  const top=element('div','d-flex align-items-center justify-content-between mb-3 flex-wrap gap-2');
-  const left=element('div');
-  const title=element('div','d-flex align-items-center gap-2 mb-1');
-  title.append(icon(v.icone+' fs-4',v.cor),styled(element('span','fw-bold fs-5',data.legado?'Registro legado':visual.veredito),{color:v.cor}));
-  left.append(title,styled(element('small','','Indicadores de linguagem · não são uma conclusão factual'),{opacity:'0.8'}));
-  const ring=styled(element('div','percentage-circle'),{
-    width:'90px',height:'90px',borderRadius:'50%',
-    background:'conic-gradient('+v.cor+' '+((visual.porcentagem??0)*3.6)+'deg, rgba(255,255,255,0.1) 0deg)',
-    display:'flex',alignItems:'center',justifyContent:'center',boxShadow:'0 0 0 6px '+v.cor+'22'
-  });
-  const inner=styled(element('div'),{width:'66px',height:'66px',borderRadius:'50%',background:'var(--surface-solid,#16241b)',display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center'});
-  inner.append(styled(element('span','meter-percentage',visual.porcentagem===null?'—':visual.porcentagem+'%'),{fontSize:'1.4rem',fontWeight:'800',color:v.cor,lineHeight:'1'}),styled(element('span','','índice'),{fontSize:'0.55rem',opacity:'0.7',textTransform:'uppercase',color:'var(--text-main)'}));
-  ring.append(inner);top.append(left,ring);card.append(top);
-  const progress=styled(element('div','progress mb-1'),{height:'10px',borderRadius:'8px',background:'rgba(255,255,255,0.1)'});
-  const bar=styled(element('div','progress-bar'),{width:(visual.porcentagem??0)+'%',background:'linear-gradient(90deg,'+v.cor+','+v.cor+'bb)',borderRadius:'8px'});
-  bar.setAttribute('role','progressbar');bar.setAttribute('aria-label','Índice heurístico de padrões');
-  bar.setAttribute('aria-valuenow',String(visual.porcentagem??0));bar.setAttribute('aria-valuemin','0');bar.setAttribute('aria-valuemax','100');
-  progress.append(bar);card.append(progress);
-  const scale=styled(element('div','d-flex justify-content-between mb-2'),{fontSize:'0.7rem',opacity:'0.6'});
-  scale.append(element('span','','Mais alertas'),element('span','','Incerto'),element('span','','Mais sinais positivos'));card.append(scale);
-  const explanation=styled(element('div','d-flex gap-2 align-items-start pt-2'),{borderTop:'1px solid '+v.cor+'22'});
-  explanation.append(icon('fa-circle-info mt-1',v.cor),styled(element('small','meter-explanation',data.legado?data.justificativa:visual.explicacao),{opacity:'0.85',whiteSpace:'pre-line'}));card.append(explanation);
-  card.append(element('small','heuristic-disclaimer d-block mt-2','Índice de padrões; não representa probabilidade de veracidade.'));
-  return card;
+// Índice calculado pelo servidor com TensorFlow + Google Fact Check (services/indice-veracidade.js).
+function validIndex(data) {
+  const index=data.indiceVeracidade;
+  if(data.legado||index?.status!=='disponivel'||!Number.isInteger(index.porcentagem)||index.porcentagem<0||index.porcentagem>100)return null;
+  return {porcentagem:index.porcentagem,classificacao:estimateClassification(index.porcentagem),componentes:index.componentes||{}};
+}
+function indexDescription(index) {
+  const tf=index.componentes.tensorflow,fc=index.componentes.factCheck,gm=index.componentes.gemini,parts=[];
+  if(fc){
+    const top=list(fc.checagens)[0];
+    parts.push('Checagens do Google Fact Check: '+fc.porcentagem+'% (peso '+Math.round(fc.peso*100)+'%)'+(top?', a mais parecida é de '+text(top.verificador)+': “'+text(top.avaliacao).slice(0,60)+'”.':'.'));
+  }
+  if(gm)parts.push('Nenhuma checagem publicada parecida foi encontrada. Conhecimento geral do Gemini: '+gm.porcentagem+'% (peso '+Math.round(gm.peso*100)+'%).');
+  if(tf)parts.push('Padrões de linguagem (TensorFlow): '+tf.porcentagem+'%'+(fc||gm?' (peso '+Math.round(tf.peso*100)+'%).':'.'));
+  if(!fc&&!gm)parts.push('Nenhuma checagem publicada parecida foi encontrada, então o número vem só do estilo do texto.');
+  return parts.join(' ');
+}
+function estimateSummary(data) {
+  const index=validIndex(data);
+  if(index)return indexSummary(data,index);
+  const estimate=validEstimate(data),section=panel('ai-estimate-summary');
+  const notApplicable=data.estimativaIA?.status==='nao_aplicavel'||(!data.estimativaIA&&data.veredito==='Não verificável');
+  const label=estimate?estimate.classificacao:data.legado?'Registro legado':notApplicable?'Opinião ou previsão':'Estimativa indisponível';
+  const row=element('div','estimate-heading'),title=element('div','estimate-title'),line=element('div','estimate-title-line');
+  line.append(icon('fa-circle-question estimate-symbol'),element('h3','',label));
+  title.append(line,element('span','estimate-kicker',data.legado?'Histórico':'Estimativa de veracidade · IA'));
+  if(!estimate){
+    section.classList.add('estimate-unavailable');
+    paragraph(title,data.legado?data.justificativa:notApplicable?'Este conteúdo não apresenta um fato que possa receber uma estimativa de veracidade.':'A IA não conseguiu estimar este conteúdo nesta tentativa. Tente novamente.','estimate-status mb-0');
+  }
+  const gauge=element('div','estimate-gauge'),inner=element('div','estimate-gauge-inner');
+  section.style.setProperty('--estimate-angle',((estimate?.porcentagem||0)*3.6)+'deg');
+  gauge.setAttribute('role','img');
+  gauge.setAttribute('aria-label',estimate?'Estimativa de veracidade por IA: '+estimate.porcentagem+' por cento':'Percentual indisponível');
+  inner.append(element('span',estimate?'estimate-percentage':'estimate-empty',estimate?estimate.porcentagem+'%':'—'),element('span','estimate-gauge-label',data.legado?'REGISTRO':'VERACIDADE'));
+  gauge.append(inner);row.append(title,gauge);section.append(row);
+  const meter=element('div','estimate-track'),bar=element('div','estimate-fill');
+  bar.style.width=(estimate?.porcentagem||0)+'%';meter.setAttribute('aria-hidden','true');meter.append(bar);section.append(meter);
+  const scale=element('div','estimate-scale');scale.setAttribute('aria-hidden','true');
+  for(const text of ['Menos provável','Incerto','Mais provável'])scale.append(element('span','',text));
+  section.append(scale);
+  if(!data.legado){
+    const description=element('div','estimate-description');
+    description.append(icon('fa-circle-info'),element('span','','A IA estima a veracidade a partir do texto, das checagens disponíveis e da análise de linguagem.'));
+    section.append(description);
+  }
+  if(!data.legado)section.append(element('small','estimate-disclaimer','Estimativa feita por IA. Pode conter erros e não substitui a conferência das fontes.'));
+  return section;
+}
+function indexSummary(data,index) {
+  const section=panel('ai-estimate-summary');
+  const row=element('div','estimate-heading'),title=element('div','estimate-title'),line=element('div','estimate-title-line');
+  line.append(icon('fa-circle-question estimate-symbol'),element('h3','',index.classificacao));
+  title.append(line,element('span','estimate-kicker',index.componentes.gemini?'Índice de veracidade · TensorFlow + conhecimento do Gemini':'Índice de veracidade · TensorFlow + Google Fact Check'));
+  const gauge=element('div','estimate-gauge'),inner=element('div','estimate-gauge-inner');
+  section.style.setProperty('--estimate-angle',(index.porcentagem*3.6)+'deg');
+  gauge.setAttribute('role','img');
+  gauge.setAttribute('aria-label','Índice de veracidade: '+index.porcentagem+' por cento');
+  inner.append(element('span','estimate-percentage',index.porcentagem+'%'),element('span','estimate-gauge-label','VERACIDADE'));
+  gauge.append(inner);row.append(title,gauge);section.append(row);
+  const meter=element('div','estimate-track'),bar=element('div','estimate-fill');
+  bar.style.width=index.porcentagem+'%';meter.setAttribute('aria-hidden','true');meter.append(bar);section.append(meter);
+  const scale=element('div','estimate-scale');scale.setAttribute('aria-hidden','true');
+  for(const text of ['Menos provável','Incerto','Mais provável'])scale.append(element('span','',text));
+  section.append(scale);
+  const description=element('div','estimate-description');
+  description.append(icon('fa-circle-info'),element('span','',indexDescription(index)));
+  section.append(description);
+  section.append(element('small','estimate-disclaimer','Estimativa feita por IA. Pode conter erros e não substitui a conferência das fontes.'));
+  return section;
 }
 function regional(data) {
   const items=list(data.noticiasRegionais);if(!items.length)return null;
@@ -140,60 +175,6 @@ function regional(data) {
     appendSafeLink(card,item.url,'Ler reportagem completa no portal','btn btn-sm btn-outline-success');
     section.append(card);
   });return section;
-}
-function metrics(visual,data) {
-  const row=element('div','row g-2 mb-3 result-metrics');
-  const negative=list(visual.analiseLocal.alertasFalso).length,positive=list(visual.analiseLocal.alertasConfiavel).length;
-  const wordCount=typeof visual.quantidadePalavras==='number'?count(visual.quantidadePalavras):visual.texto.trim().split(/\s+/).filter(Boolean).length;
-  [[negative,'sinais de alerta',negative>3?COLORS.red:COLORS.green],[positive,'sinais positivos',COLORS.green],[wordCount,'palavras',''],[list(data.resultados).length,'fact-checks API',list(data.resultados).length?COLORS.green:COLORS.yellow]].forEach(([value,label,color])=>{
-    const col=element('div','col-6 col-md-3');
-    const card=styled(element('div','metric-card text-center p-2'),{background:'var(--card-bg,rgba(255,255,255,0.08))',border:'1px solid var(--border,rgba(255,255,255,0.15))',borderRadius:'12px'});
-    card.append(styled(element('div','metric-value',value),{fontSize:'1.3rem',fontWeight:'700',color}),styled(element('div','metric-label',label),{fontSize:'0.7rem',opacity:'0.7'}));
-    col.append(card);row.append(col);
-  });return row;
-}
-function overview(dimensions) {
-  const entries=[['sensacionalismo','Sensacionalismo','fa-bullhorn',COLORS.orange],['fonte','Referências citadas no texto','fa-link',COLORS.green],['estrutura','Completude do texto','fa-file-lines',COLORS.blue]];
-  if(!entries.some(([key])=>dimensions[key]&&typeof dimensions[key]==='object'))return null;
-  const section=element('section','analysis-overview mb-3');
-  const top=element('div','d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3');
-  heading(top,'Leitura detalhada da notícia','fa-chart-simple me-2','mb-0');
-  top.append(element('small','analysis-disclaimer','Indicadores automáticos, não prova definitiva'));section.append(top);
-  const row=element('div','row g-2');
-  entries.forEach(([key,title,name,color])=>{
-    const item=dimensions[key];if(!item||typeof item!=='object')return;
-    const col=element('div','col-12 col-md-4');
-    const card=element('div','analysis-card h-100');
-    const line=element('div','d-flex justify-content-between align-items-center gap-2 mb-2');
-    const label=element('span','analysis-card-title');label.append(icon(name+' me-2',color),document.createTextNode(title));
-    const score=percent(item.pontuacao);
-    line.append(label,styled(element('strong','',(score??0)+'/100'),{color}));card.append(line);
-    const progress=element('div','progress analysis-progress mb-2');progress.setAttribute('role','progressbar');progress.setAttribute('aria-label',title);progress.setAttribute('aria-valuenow',String(score??0));progress.setAttribute('aria-valuemin','0');progress.setAttribute('aria-valuemax','100');
-    progress.append(styled(element('div','progress-bar'),{width:(score??0)+'%',background:color}));card.append(progress);
-    const description = key === 'fonte' ? (list(dimensions.informacoes?.links).length ? 'Há links citados no corpo do texto para conferir. A presença de links não comprova a afirmação.' : 'Não foram identificados links citados no corpo do texto. O endereço da publicação enviada é exibido separadamente e não entra neste indicador.') : text(item.descricao);
-    card.append(element('span','analysis-level',text(item.nivel)),element('small','',description));
-    col.append(card);row.append(col);
-  });section.append(row);
-  if(dimensions.evidencia){
-    const evidence=element('div','analysis-evidence mt-2');evidence.append(icon('fa-shield-halved me-2'),document.createTextNode('Evidência usada: '),element('strong','',text(dimensions.evidencia.tipo)));
-    if(dimensions.evidencia.quantidade)evidence.append(document.createTextNode(' ('+count(dimensions.evidencia.quantidade)+' resultado(s))'));
-    section.append(evidence);
-  }return section;
-}
-function information(info) {
-  if(!info||typeof info!=='object')return null;
-  const section=element('section','news-information mb-3');
-  heading(section,'Informações extraídas do texto','fa-circle-info me-2','mb-3');
-  const claim=element('div','news-claim');claim.append(element('span','','Alegação principal'),element('p','',text(info.alegacaoPrincipal)||'Não identificada'));section.append(claim);
-  const grid=element('div','news-info-grid');
-  [['Palavras importantes','fa-key','palavrasImportantes'],['Nomes e entidades','fa-user-tag','entidades'],['Números e valores','fa-hashtag','numeros'],['Datas','fa-calendar-days','datas']].forEach(([title,name,key])=>{
-    const group=element('div','news-info-group'),label=element('strong');label.append(icon(name+' me-2'),document.createTextNode(title));
-    const values=element('div','news-info-values');
-    const items=list(info[key]);if(items.length)items.forEach(value=>values.append(element('span','',text(value))));else values.append(element('em','','Não identificado'));
-    group.append(label,values);grid.append(group);
-  });section.append(grid);
-  if(list(info.links).length){const links=element('div','news-links mt-3');links.append(element('strong','','Links citados no corpo do texto'));info.links.forEach(url=>appendSafeLink(links,url,url));section.append(links);}
-  return section;
 }
 function articleSource(article) {
   if(!article?.url)return null;
@@ -222,22 +203,6 @@ function patterns(local) {
       block.append(badges);group.append(block);
     }section.append(group);
   });return section;
-}
-function characteristics(visual,data) {
-  const section=panel('text-characteristics');heading(section,'Características do texto','fa-file-lines me-2');
-  const chars=typeof visual.quantidadeCaracteres==='number'?count(visual.quantidadeCaracteres):visual.texto.length;
-  const words=typeof visual.quantidadePalavras==='number'?count(visual.quantidadePalavras):visual.texto.trim().split(/\s+/).filter(Boolean).length;
-  const hasLink=/https?:\/\/[^\s]+/.test(visual.texto),hasDate=/\d{1,2}\/\d{1,2}\/\d{2,4}/.test(visual.texto);
-  const row=element('div','row g-1');
-  [
-    (chars>200?'✅':'⚠️')+' Tamanho: '+(chars<80?'muito curto':chars<200?'curto':chars<600?'médio':'longo')+' ('+chars+' caracteres)',
-    (hasLink?'✅ Há links citados no texto':'ℹ️ Sem links citados no texto'),
-    (hasDate?'✅ Contém data':'❌ Sem data clara'),
-    (!list(visual.analiseLocal.alertasFalso).length?'✅ Linguagem neutra':'⚠️ Linguagem emocional/alarmista'),
-    '📝 '+words+' palavra(s) no total',
-    list(data.resultados).length?'🌐 '+list(data.resultados).length+' fact-check(s) consultado(s)':'🔍 Nenhum fact-check externo'
-  ].forEach(value=>{const col=element('div','col-6');col.append(element('small','',value));row.append(col);});
-  section.append(row);return section;
 }
 function reviewResults(data) {
   const reviews=list(data.resultados);
@@ -269,12 +234,64 @@ function sourceList(data) {
   const section=panel('consulted-sources');heading(section,'Fontes consultadas','fa-link me-2');
   sources.forEach(source=>{const item=element('div','mb-2');appendSafeLink(item,source.url,source.titulo||source.verificador||'Consultar fonte','analysis-source-link');paragraph(item,[text(source.verificador),text(source.data)].filter(Boolean).join(' · '),'small mb-0');section.append(item);});return section;
 }
+function compactSources(data) {
+  const sources=list(data.fontes).filter(source=>source.tipo==='checagem'&&source.url);
+  if(!sources.length)return null;
+  const unique=sources.filter((source,index)=>sources.findIndex(item=>item.url===source.url)===index);
+  const section=element('section','compact-sources mb-3');heading(section,'Fontes encontradas','fa-link me-2');
+  unique.slice(0,3).forEach(source=>appendSafeLink(section,source.url,text(source.verificador)||text(source.titulo)||'Ler fonte','analysis-source-link'));
+  if(unique.length>3)paragraph(section,'Mais '+(unique.length-3)+' fonte(s) nos detalhes abaixo.','small mb-0 mt-2');
+  return section;
+}
+function claimResults(data) {
+  const claims=list(data.afirmacoes);
+  if(!claims.length)return null;
+  const section=panel('claim-results');heading(section,'Resultado por afirmação','fa-list-check me-2');
+  claims.forEach((claim,index)=>{
+    const card=element('article','claim-result p-3 mb-2');
+    heading(card,'Afirmação '+(index+1),null,'small mb-2');
+    paragraph(card,text(claim.texto),'claim-text fw-semibold');
+    const label=claim.veredito==='Verdadeiro'?'Conteúdo verdadeiro':FACTUAL.has(claim.veredito)?claim.veredito:'Sem evidências suficientes';
+    card.append(element('strong','claim-verdict d-block mb-2',label));
+    paragraph(card,text(claim.justificativa),'small');
+    const findings=claim.constatacoes||{};
+    const fields=element('dl','claim-findings small');
+    [['confirmado','Confirmado'],['refutado','Refutado'],['semComprovacao','Sem comprovação']].forEach(([key,title])=>{
+      const items=list(findings[key]).filter(value=>typeof value==='string'&&value);
+      if(items.length){fields.append(element('dt','',title));items.forEach(value=>fields.append(element('dd','',value)));}
+    });
+    if(fields.childElementCount)card.append(fields);
+    const used=new Set(list(claim.evidenciasUtilizadas));
+    list(claim.evidencias).forEach(evidence=>{
+      const item=element('div','claim-evidence small mt-2');
+      paragraph(item,(used.has(evidence.id)?'Fonte da classificação: ':'Referência sem conclusão para esta afirmação: ')+text(evidence.verificador)+(evidence.data_verificacao?' · '+publicationDate(evidence.data_verificacao):''),'mb-1');
+      paragraph(item,'Afirmação checada: '+text(evidence.texto_verificado),'mb-1');
+      paragraph(item,'Avaliação original: '+text(evidence.avaliacao),'mb-1');
+      if(evidence.autor_alegacao)paragraph(item,'Autoria atribuída à alegação: '+text(evidence.autor_alegacao),'mb-1');
+      if(evidence.data_alegacao)paragraph(item,'Data da alegação: '+publicationDate(evidence.data_alegacao),'mb-1');
+      appendSafeLink(item,evidence.url_verificacao,'Ler checagem original','analysis-source-link');card.append(item);
+    });
+    list(claim.limitacoes).filter(limit=>!list(findings.semComprovacao).includes(limit)).forEach(limit=>paragraph(card,text(limit),'small mb-1'));
+    section.append(card);
+  });return section;
+}
+function classificationGuide(data) {
+  const section=panel('classification-guide'),details=element('details');
+  details.append(element('summary','fw-semibold','O que significa cada classificação?'));
+  const definitions=data.classificacoes&&typeof data.classificacoes==='object'?data.classificacoes:VERDICT_HELP;
+  const fields=element('dl','small mt-3 mb-0');
+  Object.keys(VERDICT_HELP).forEach(label=>fields.append(element('dt','mt-2',label),element('dd','mb-2',text(definitions[label])||VERDICT_HELP[label])));
+  details.append(fields);section.append(details);return section;
+}
 function linguisticComparisons(data) {
   const language=data.analiseLinguagem;
   if(!language?.tensorflow)return null;
   const section=panel('linguistic-comparisons'),details=element('details');
   const summary=element('summary','fw-semibold','Comparação do texto com as checagens');
   details.append(summary);
+  const local=language.tensorflow,executed=count(local.comparacoesExecutadas);
+  const status=local.disponivel ? executed ? executed+' comparação(ões) lexical(is) executada(s)'+(local.modelo?' e modelo treinado utilizado: '+text(local.modelo):'; nenhum modelo treinado utilizado') : 'runtime disponível; nenhuma comparação executada; nenhum modelo treinado utilizado' : 'indisponível nesta análise';
+  paragraph(details,'TensorFlow.js: '+status+'.','tensorflow-status small mt-2');
   paragraph(details,'A comparação mede palavras em comum. Mesmo textos muito parecidos podem discordar entre si; o resultado não confirma fatos nem identifica contradições.','small mt-2 mb-2');
   const claims=list(data.afirmacoes),reviews=list(data.resultados);
   const comparisons=list(language.comparacoes).flatMap(item=>{
@@ -359,11 +376,14 @@ function legalContext(data) {
 function geminiFeedback(data) {
   const feedback=data.feedbackGemini||{};
   const provider=feedback.provedor||data.geracao?.provedor;
-  const section=panel('gemini-feedback');heading(section,provider==='openai'?'Feedback da OpenAI':'Feedback do Gemini','fa-wand-magic-sparkles me-2');
+  const section=panel('gemini-feedback');heading(section,provider==='openai'?'Análise da OpenAI':'Análise do Gemini','fa-wand-magic-sparkles me-2');
   const disabled = feedback.estado === 'desativado' || data.geracao?.estado === 'desativado' || feedback.status === 'desativado' || data.geracao?.status === 'desativado' || /IA opcional não configurada|recurso desativado/i.test(text(data.geracao?.motivo));
-  const content=disabled ? 'O comentário por IA está desativado nesta versão. A busca de checagens do Google é uma integração separada e seu resultado aparece acima.' : text(feedback.texto)||(provider==='openai'?'O feedback da OpenAI não está disponível nesta análise. Os indicadores e as checagens acima continuam disponíveis.':'O feedback do Gemini não está disponível nesta análise. Os indicadores e as checagens acima continuam disponíveis.');
+  const estimate=validEstimate(data);
+  const reasons={conhecimento_geral:'A IA considerou seu conhecimento geral sobre o assunto.',checagem_concordante:'Há checagens que dão suporte ao conteúdo.',checagem_discordante:'Há checagens que contestam o conteúdo.',contexto_insuficiente:'As informações de contexto disponíveis são limitadas.',contexto_temporal:'A data e o contexto influenciam esta estimativa.',comparacao_textual:'A IA considerou a comparação do texto com as checagens disponíveis.',sinais_linguagem:'Os sinais de linguagem foram considerados como contexto, sem comprovar o fato.'};
+  const selected=estimate?list(estimate.motivos).map(id=>reasons[id]).filter(Boolean).slice(0,2):[];
+  const explanation=text(feedback.explicacao);
+  const content=explanation ? explanation : estimate ? selected.join(' ')||'O percentual expressa a avaliação da IA sobre o conteúdo enviado, considerando as informações disponíveis.' : disabled ? 'A estimativa por IA está desativada nesta versão. As fontes disponíveis podem ser consultadas abaixo.' : text(feedback.texto)||(provider==='openai'?'A análise da OpenAI não está disponível nesta tentativa.':'A análise do Gemini não está disponível nesta tentativa.');
   paragraph(section,content,'gemini-feedback-text mb-2');
-  if(feedback.status==='ia')paragraph(section,'Comentário gerado por IA; confira as fontes e o contexto.','small opacity-75 mb-1');
   const sources=list(data.fontes);
   const references=list(feedback.referencias).flatMap(reference=>{
     if(typeof reference==='string'){
@@ -380,42 +400,36 @@ function geminiFeedback(data) {
   return section;
 }
 export function renderAnalysis(container,record) {
-  const data=normalizeResult(record),visual=getVisual(data),output=document.createDocumentFragment();
-  const root=element('div','restored-results');
-  const conclusion=panel('factual-summary');
-  conclusion.append(element('small','','Conclusão pelas evidências'),element('h3','',resultLabel(data)));
-  paragraph(conclusion,text(data.justificativa)||'Leia as checagens e confira se correspondem à afirmação, à data e ao contexto enviados.','small mb-0');
-  root.append(conclusion,header(data,visual),meter(visual,data));
-  const related=regional(data);if(related)root.append(related);
-  root.append(metrics(visual,data));
-  const details=overview(visual.dimensoes);if(details)root.append(details);
-  const info=information(visual.dimensoes.informacoes || {alegacaoPrincipal:visual.texto});if(info)root.append(info);
-  const article=articleSource(data.noticia);if(article)root.append(article);
-  const signals=patterns(visual.analiseLocal);if(signals)root.append(signals);
-  root.append(characteristics(visual,data),reviewResults(data));
-  const sources=sourceList(data);if(sources)root.append(sources);
-  const comparisons=linguisticComparisons(data);if(comparisons)root.append(comparisons);
-  const guidance=panel('user-guidance');heading(guidance,'O que fazer com essa informação','fa-list-check me-2');
-  paragraph(guidance,text(data.secoes?.orientacao)||'Consulte a fonte original e confira datas, nomes e contexto antes de compartilhar. Indicadores de linguagem não substituem checagens publicadas.','small mb-0');root.append(guidance);
-  const learning=panel('learning-recommendations');
-  heading(learning,'Continue aprendendo','fa-book-open me-2');
-  paragraph(learning,'Aulas para ajudar você a dar o próximo passo na investigação.','small mb-0');
-  const links=element('div','learning-links');
-  recommendedLessons(data).forEach(id=>{
-    if(!isLessonAvailable(id))return;
-    const lesson=lessons.find(item=>item.lessonId===id);
-    if(!lesson)return;
-    const link=element('a','',lesson.titulo+' →');
-    link.href='/#licao-'+id;
-    link.dataset.openLesson=id;
-    links.append(link);
-  });
-  if(links.childElementCount){learning.append(links);root.append(learning);}
-  root.append(geminiFeedback(data));
+  return renderValidated(container,assertAnalysisResult(record));
+}
+export function renderHistoryAnalysis(container,record) {
+  return renderValidated(container,normalizeResult(record));
+}
+function renderValidated(container,data) {
+  const visual=getVisual(data),output=document.createDocumentFragment();
+  const root=element('div','restored-results compact-results');
+  root.append(estimateSummary(data),geminiFeedback(data));
   const legal=legalContext(data);if(legal)root.append(legal);
+  const quickSources=compactSources(data);if(quickSources)root.append(quickSources);
+  const details=element('details','result-details');
+  details.append(element('summary','','Fontes e detalhes da análise'));
+  const body=element('div','result-details-content');
+  const conclusion=panel('factual-summary');
+  const factualLabel=data.legado?'Registro legado':FACTUAL.has(data.veredito)?data.veredito:'Sem evidências suficientes';
+  conclusion.append(element('small','','Conclusão pelas evidências publicadas'),element('h3','',factualLabel));
+  paragraph(conclusion,text(data.justificativa)||'Leia as checagens e confira se correspondem à afirmação, à data e ao contexto enviados.','small mb-0');
+  body.append(conclusion);
+  const claims=claimResults(data);if(claims)body.append(claims);
+  const article=articleSource(data.noticia);if(article)body.append(article);
+  const related=regional(data);if(related)body.append(related);
+  body.append(reviewResults(data));
+  const sources=sourceList(data);if(sources)body.append(sources);
+  const signals=patterns(visual.analiseLocal);if(signals)body.append(signals);
+  const comparisons=linguisticComparisons(data);if(comparisons)body.append(comparisons);
+  body.append(classificationGuide(data));
   const limits=[...new Set([...list(data.limitacoes),data.avisoHistorico].filter(value=>typeof value==='string'&&value))];
-  if(limits.length){const note=element('details','analysis-limitations small mb-3');note.append(element('summary','','Limitações da análise'));const ul=element('ul','analysis-list mt-2');limits.forEach(value=>ul.append(element('li','',value)));note.append(ul);root.append(note);}
-  paragraph(root,'A análise de padrões é automática e não substitui verificação jornalística humana. Sempre consulte fontes primárias antes de compartilhar.','result-disclaimer mt-3 mb-0 text-center');
+  if(limits.length){const note=element('details','analysis-limitations small mb-3');note.append(element('summary','','Ressalvas desta análise'));const ul=element('ul','analysis-list mt-2');limits.forEach(value=>ul.append(element('li','',value)));note.append(ul);body.append(note);}
+  details.append(body);root.append(details);
   output.append(root);container.replaceChildren(output);return data;
 }
 

@@ -5,12 +5,15 @@ import { setTimeout as delay } from 'node:timers/promises';
 import { MongoClient } from 'mongodb';
 import { NewsItem } from './models.js';
 import { Deduplicator } from './deduplicator.js';
+import { isAcceptableArchiveRecord } from '../services/article-eligibility.js';
 
-export const CSV_FIELDS = ['titulo', 'data_publicacao', 'texto', 'url', 'fonte', 'coletado_em', 'content_hash'];
+export const CSV_FIELDS = ['titulo', 'data_publicacao', 'texto', 'url', 'fonte', 'coletado_em', 'content_hash', 'proveniencia', 'revisao', 'quarentena'];
 async function readOptional(filepath) { try { return await readFile(filepath, 'utf8'); } catch (error) { if (error.code === 'ENOENT') return ''; throw error; } }
 function recordFrom(value, location) {
   if (!value || typeof value !== 'object' || Array.isArray(value) || typeof value.url !== 'string' || typeof (value.titulo ?? value.title) !== 'string' || typeof (value.texto ?? value.text) !== 'string') throw new Error(`Registro inválido em ${location}; arquivo preservado.`);
-  return value instanceof NewsItem ? value : NewsItem.fromRecord(value);
+  const record = value instanceof NewsItem ? value : NewsItem.fromRecord(value);
+  if (!isAcceptableArchiveRecord(record)) throw new Error(`Registro não elegível para importação em ${location}; origem preservada para revisão/quarentena.`);
+  return record;
 }
 function unique(records) {
   const dedup = new Deduplicator(), result = [];
@@ -30,7 +33,7 @@ async function withLock(filepath, callback) {
   finally { await lock.close(); await unlink(lockpath).catch(() => {}); }
 }
 function csvCell(value) {
-  let text = value == null ? '' : String(value);
+  let text = value == null ? '' : typeof value === 'object' ? JSON.stringify(value) : String(value);
   // Evita execução de fórmulas ao abrir os arquivos em programas de planilha.
   if (/^[\s]*[=+@-]/.test(text)) text = `'${text}`;
   return /[;"\r\n]/.test(text) ? `"${text.replace(/"/g, '""')}"` : text;

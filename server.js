@@ -22,6 +22,8 @@ import { lessons } from './public/js/education-content.js';
 import { educationCatalog } from './services/education.js';
 import { serviceReadiness } from './services/readiness.js';
 import { siteUrl } from './services/site-config.js';
+import { assertAnalysisResult } from './public/js/result-contract.js';
+import { evaluateClaim } from './services/evidence.js';
 
 const directory = path.dirname(fileURLToPath(import.meta.url));
 mongoose.set('bufferCommands', false);
@@ -85,10 +87,19 @@ export function createApp({ analyze = analisarConteudo, dbReady = () => mongoose
       const controller = new AbortController();
       res.once('close', () => { if (!res.writableFinished) controller.abort(); });
       const dados = await analyze(body, { signal: controller.signal, buscarRegionais: (text, url) => NoticiaColetada.buscarCorrespondentes(text, url) });
+      assertAnalysisResult(dados);
+      // Recheck eligibility at the output boundary; incoming flags alone are not proof.
+      for (const claim of dados.afirmacoes) {
+        if (!claim.evidenciasUtilizadas.length) continue;
+        const checked = evaluateClaim(claim, dados.resultados);
+        if (checked.veredito !== claim.veredito || claim.evidenciasUtilizadas.some(id => !checked.evidenciasUtilizadas.includes(id))) {
+          throw new Error('INVALID_ANALYSIS_RESULT');
+        }
+      }
       if (req.user && dbReady()) {
         try {
           await Verificacao.create({ userId: req.user._id, texto: body.texto || body.link, cidade: body.cidade || '', categoria: body.categoria || '',
-            porcentagem: null, confianca: null, veredito: dados.veredito, explicacao: dados.explicacao || '', fonte: dados.fonte || 'analise',
+            porcentagem: dados.porcentagem ?? null, confianca: dados.confianca ?? null, veredito: dados.veredito, explicacao: dados.explicacao || '', fonte: dados.fonte || 'analise',
             dadosAPI: dados.resultados || [], schemaVer: 2, resultado: dados });
         } catch { dados.avisoHistorico = 'A análise foi concluída, mas não foi possível salvar no histórico.'; }
       }

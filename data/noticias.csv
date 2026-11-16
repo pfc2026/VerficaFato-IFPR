@@ -1,44 +1,4 @@
-﻿titulo;data_publicacao;texto;url;fonte;coletado_em;content_hash
-Notícia Teste de Inicialização;;Texto longo o suficiente para passar no validador do VerificaFato.;https://g1.globo.com/pr/teste-inicial;g1_parana;2026-10-23T17:55:12.736185+00:00;6594a86fe2f68c269aaeb9aad5d6956e586725d11151d3092ffaf66369d91050
-Últimas Notícias;2019-08-22T20:35:48.892000+00:00;"VÍDEO: temporal arranca telhados de dois colégios no Paraná, suspende aulas e muda local de votação de 3,2 mil eleitores
-
-Vendaval atingiu Barracão durante a madrugada desta sexta-feira (23). Colégio Dr. Mário Augusto Teixeira de Freitas teve salas invadidas pela água. Dez seções eleitorais foram transferidas para um centro comunitário.
-
-Corpo de reitor da PUC-PR morto nos EUA deve chegar ao Brasil até 30 de outubro, diz universidade
-
-Rogério Renato Mateucci foi atingido por um objeto levado pelo vento durante visita a museu no Arizona. Vice-reitor deve assumir comando da universidade interinamente.
-
-Filha encontrada em cárcere pelos pais que estranharam mensagens e viajaram 'de surpresa' ficou quase 2 semanas presa pelo namorado no PR
-
-Jovem estava sendo mantida em cárcere privado e apresentava diversas lesões decorrentes de agressões. Namorado dela está preso preventivamente.
-
-Esposa de paciente que passou mal em transfusão de sangue diz ter levado tapa no braço ao pedir ajuda em hospital
-
-Família alega que homem recebeu uma tipagem sanguínea incompatível na unidade hospitalar. Hospital informou que apura o caso.
-
-Vídeos mostram casa inteira deslizando em barranco que cedeu com chuvas no Paraná, e como ficou o imóvel; VEJA
-
-Imóvel foi construído há quatro anos, em área regular, por programa habitacional do Governo do Estado. Família tinha sido retirada da residência uma semana antes por segurança. Ninguém se feriu.
-
-Menina de 2 anos encontrada com hematomas e sangue na roupa no Paraná morava com padrasto suspeito de agressão há dois meses
-
-Criança chegou ferida a uma creche de Palotina. Segundo a Polícia Civil, mãe desconhecia as supostas agressões. Justiça determinou a prisão preventiva do padrasto, de 27 anos.
-
-Bazar em Curitiba tem roupas infantis e brinquedos a partir de R$ 2 neste sábado (24)
-
-Evento será realizado das 8h às 13h e terá brincadeiras e lanche para as crianças.
-
-Mega-Sena premia 13 apostas do Paraná, mas ninguém acerta as seis dezenas e prêmio chega a R$ 230 milhões; veja cidades
-
-Apostas que acertaram cinco números no concurso 3073 receberam prêmios de até R$ 161,9 mil. Próximo sorteio será no sábado (24).
-
-Zeladores devem vistoriar colégios do Paraná para verificar se há outras câmeras em banheiros, determina Secretaria de Educação
-
-Determinação ocorre na semana em que um equipamento de filmagens foi encontrado em um sanitário de um colégio cívico-militar em Cambé. Pasta também assinou resolução que proíbe câmeras em banheiros ou vestiários em qualquer ambiente escolar.
-
-Aposta do Paraná ganha R$ 3,8 milhões na Lotofácil; veja cidade onde ela foi feita
-
-Aposta premiada foi feita na modalidade bolão e dividiu prêmio principal com dois jogos de outros estados. Próximo sorteio está agendado para a noite desta sexta-feira (23).";https://g1.globo.com/pr/parana/ultimas-noticias;g1_parana;2026-10-23T18:02:57.405745+00:00;161d314ca028c432b1e01963bb99e952e7ccc6c0c774475b65f0c76dcee99c9f
+﻿titulo;data_publicacao;texto;url;fonte;coletado_em;content_hash;proveniencia;revisao;quarentena
 Esposa de paciente que passou mal em transfusão de sangue diz ter levado tapa no braço ao pedir ajuda em hospital;2026-10-23T10:50:28.963000-03:00;"Por Renata Maia,Matheus Karam
 
 23/10/2026 10h50Atualizado23/10/2026
@@ -87,7 +47,7 @@ Leia mais notícias emg1 Norte e Noroeste.
 
 De segunda a sábado, as notícias que você não pode perder diretamente no seu e-mail.
 
-Para se inscrever, entre ou crie uma conta Globo gratuita.";https://g1.globo.com/pr/norte-noroeste/noticia/2026/10/23/esposa-de-paciente-que-teve-reacao-ao-receber-transfusao-de-sangue-diz-que-levou-tapa-no-braco-de-funcionario-de-hospital-ao-pedir-ajuda.ghtml;g1_parana;2026-10-23T18:02:59.568822+00:00;a7f6b311fdd6e34b5df3fe7ac53ba219cf4212a9bc4f0d897db54809c79599bd
+Para se inscrever, entre ou crie uma conta Globo gratuita.";https://g1.globo.com/pr/norte-noroeste/noticia/2026/10/23/esposa-de-paciente-que-teve-reacao-ao-receber-transfusao-de-sangue-diz-que-levou-tapa-no-braco-de-funcionario-de-hospital-ao-pedir-ajuda.ghtml;g1_parana;2026-10-23T18:02:59.568822+00:00;a7f6b311fdd6e34b5df3fe7ac53ba219cf4212a9bc4f0d897db54809c79599bd;"{""tipo"":""artigo"",""metodo"":""revisao_documentada"",""urlOrigem"":""https://g1.globo.com/pr/norte-noroeste/noticia/2026/10/23/esposa-de-paciente-que-teve-reacao-ao-receber-transfusao-de-sangue-diz-que-levou-tapa-no-braco-de-funcionario-de-hospital-ao-pedir-ajuda.ghtml"",""content_hash"":""a7f6b311fdd6e34b5df3fe7ac53ba219cf4212a9bc4f0d897db54809c79599bd""}";"{""estado"":""aprovado"",""em"":""2026-11-15"",""url"":""https://g1.globo.com/pr/norte-noroeste/noticia/2026/10/23/esposa-de-paciente-que-teve-reacao-ao-receber-transfusao-de-sangue-diz-que-levou-tapa-no-braco-de-funcionario-de-hospital-ao-pedir-ajuda.ghtml"",""content_hash"":""a7f6b311fdd6e34b5df3fe7ac53ba219cf4212a9bc4f0d897db54809c79599bd"",""referencia"":""RELATORIO_TESTES.md#f10; .artifacts/audit-2026-11-15/catalog-url-check.json"",""escopo"":""Identidade de artigo, URL, título e corpo coletado. Não confirma a veracidade das alegações.""}";
 Paciente tem reação após receber transfusão de sangue em hospital do Paraná e família denuncia que ele recebeu o tipo sanguíneo errado;2026-10-21T19:15:41.624000-03:00;"Por Renata Maia,Matheus Karam, g1 PR e RPC Londrina
 
 21/10/2026 19h15Atualizado23/10/2026
@@ -136,7 +96,7 @@ Leia mais notícias emg1 Norte e Noroeste.
 
 De segunda a sábado, as notícias que você não pode perder diretamente no seu e-mail.
 
-Para se inscrever, entre ou crie uma conta Globo gratuita.";https://g1.globo.com/pr/norte-noroeste/noticia/2026/10/21/paciente-tem-reacao-apos-receber-transfusao-de-sangue-em-hospital-do-parana-e-familia-denuncia-que-ele-recebeu-o-tipo-sanguineo-errado.ghtml;g1_parana;2026-10-23T18:03:01.665655+00:00;8984e4ef12cbc50c49341bac4cf5dc0fb99afa5dd72a40a108585b00a83343e4
+Para se inscrever, entre ou crie uma conta Globo gratuita.";https://g1.globo.com/pr/norte-noroeste/noticia/2026/10/21/paciente-tem-reacao-apos-receber-transfusao-de-sangue-em-hospital-do-parana-e-familia-denuncia-que-ele-recebeu-o-tipo-sanguineo-errado.ghtml;g1_parana;2026-10-23T18:03:01.665655+00:00;8984e4ef12cbc50c49341bac4cf5dc0fb99afa5dd72a40a108585b00a83343e4;"{""tipo"":""artigo"",""metodo"":""revisao_documentada"",""urlOrigem"":""https://g1.globo.com/pr/norte-noroeste/noticia/2026/10/21/paciente-tem-reacao-apos-receber-transfusao-de-sangue-em-hospital-do-parana-e-familia-denuncia-que-ele-recebeu-o-tipo-sanguineo-errado.ghtml"",""content_hash"":""8984e4ef12cbc50c49341bac4cf5dc0fb99afa5dd72a40a108585b00a83343e4""}";"{""estado"":""aprovado"",""em"":""2026-11-15"",""url"":""https://g1.globo.com/pr/norte-noroeste/noticia/2026/10/21/paciente-tem-reacao-apos-receber-transfusao-de-sangue-em-hospital-do-parana-e-familia-denuncia-que-ele-recebeu-o-tipo-sanguineo-errado.ghtml"",""content_hash"":""8984e4ef12cbc50c49341bac4cf5dc0fb99afa5dd72a40a108585b00a83343e4"",""referencia"":""RELATORIO_TESTES.md#f10; .artifacts/audit-2026-11-15/catalog-url-check.json"",""escopo"":""Identidade de artigo, URL, título e corpo coletado. Não confirma a veracidade das alegações.""}";
 Proibição de filmar banheiros de escolas do Paraná foi assinada 4 horas após registro de denúncia sobre câmera encontrada por aluna;2026-10-23T00:00:00.605000-03:00;"PorBruna Melo,Matheus Karam, g1 PR e RPC Londrina— Londrina
 
 23/10/2026 00h00Atualizado23/10/2026
@@ -245,7 +205,7 @@ Leia mais emg1 Norte e Noroeste.
 
 De segunda a sábado, as notícias que você não pode perder diretamente no seu e-mail.
 
-Para se inscrever, entre ou crie uma conta Globo gratuita.";https://g1.globo.com/pr/norte-noroeste/noticia/2026/10/23/proibicao-de-filmar-banheiros-de-escolas-do-parana-foi-assinada-4-horas-apos-registro-de-denuncia-sobre-camera-encontrada-por-aluna.ghtml;g1_parana;2026-10-23T17:20:22.089883+00:00;f652946a3b8e203ec687ca2b83d6c4d872470812aca062aebfc829c62d3da2a5
+Para se inscrever, entre ou crie uma conta Globo gratuita.";https://g1.globo.com/pr/norte-noroeste/noticia/2026/10/23/proibicao-de-filmar-banheiros-de-escolas-do-parana-foi-assinada-4-horas-apos-registro-de-denuncia-sobre-camera-encontrada-por-aluna.ghtml;g1_parana;2026-10-23T17:20:22.089883+00:00;f652946a3b8e203ec687ca2b83d6c4d872470812aca062aebfc829c62d3da2a5;"{""tipo"":""artigo"",""metodo"":""revisao_documentada"",""urlOrigem"":""https://g1.globo.com/pr/norte-noroeste/noticia/2026/10/23/proibicao-de-filmar-banheiros-de-escolas-do-parana-foi-assinada-4-horas-apos-registro-de-denuncia-sobre-camera-encontrada-por-aluna.ghtml"",""content_hash"":""f652946a3b8e203ec687ca2b83d6c4d872470812aca062aebfc829c62d3da2a5""}";"{""estado"":""aprovado"",""em"":""2026-11-15"",""url"":""https://g1.globo.com/pr/norte-noroeste/noticia/2026/10/23/proibicao-de-filmar-banheiros-de-escolas-do-parana-foi-assinada-4-horas-apos-registro-de-denuncia-sobre-camera-encontrada-por-aluna.ghtml"",""content_hash"":""f652946a3b8e203ec687ca2b83d6c4d872470812aca062aebfc829c62d3da2a5"",""referencia"":""RELATORIO_TESTES.md#f10; .artifacts/audit-2026-11-15/catalog-url-check.json"",""escopo"":""Identidade de artigo, URL, título e corpo coletado. Não confirma a veracidade das alegações.""}";
 Zeladores devem vistoriar colégios do Paraná para verificar se há outras câmeras em banheiros, determina Secretaria de Educação;2026-10-23T08:27:03.697000-03:00;"PorMatheus Karam,Bruna Melo, g1 PR e RPC Londrina
 
 23/10/2026 08h27Atualizado23/10/2026
@@ -332,7 +292,7 @@ Leia mais notícias emg1 Norte e Noroeste.
 
 De segunda a sábado, as notícias que você não pode perder diretamente no seu e-mail.
 
-Para se inscrever, entre ou crie uma conta Globo gratuita.";https://g1.globo.com/pr/norte-noroeste/noticia/2026/10/23/zeladores-devem-vistoriar-colegios-do-parana-para-verificar-se-ha-outras-cameras-em-banheiros-determina-secretaria-de-educacao.ghtml;g1_parana;2026-10-23T17:20:24.143529+00:00;f2e031f64de3072f4eb1d74a7c61ddcc30544a8fdea03d01c06f113538cc14a4
+Para se inscrever, entre ou crie uma conta Globo gratuita.";https://g1.globo.com/pr/norte-noroeste/noticia/2026/10/23/zeladores-devem-vistoriar-colegios-do-parana-para-verificar-se-ha-outras-cameras-em-banheiros-determina-secretaria-de-educacao.ghtml;g1_parana;2026-10-23T17:20:24.143529+00:00;f2e031f64de3072f4eb1d74a7c61ddcc30544a8fdea03d01c06f113538cc14a4;"{""tipo"":""artigo"",""metodo"":""revisao_documentada"",""urlOrigem"":""https://g1.globo.com/pr/norte-noroeste/noticia/2026/10/23/zeladores-devem-vistoriar-colegios-do-parana-para-verificar-se-ha-outras-cameras-em-banheiros-determina-secretaria-de-educacao.ghtml"",""content_hash"":""f2e031f64de3072f4eb1d74a7c61ddcc30544a8fdea03d01c06f113538cc14a4""}";"{""estado"":""aprovado"",""em"":""2026-11-15"",""url"":""https://g1.globo.com/pr/norte-noroeste/noticia/2026/10/23/zeladores-devem-vistoriar-colegios-do-parana-para-verificar-se-ha-outras-cameras-em-banheiros-determina-secretaria-de-educacao.ghtml"",""content_hash"":""f2e031f64de3072f4eb1d74a7c61ddcc30544a8fdea03d01c06f113538cc14a4"",""referencia"":""RELATORIO_TESTES.md#f10; .artifacts/audit-2026-11-15/catalog-url-check.json"",""escopo"":""Identidade de artigo, URL, título e corpo coletado. Não confirma a veracidade das alegações.""}";
 Dois policiais militares são afastados das funções em colégio cívico-militar do Paraná após alunas denunciarem câmera instalada no banheiro;2026-10-22T17:01:03.193000-03:00;"Por g1 PR e RPC Londrina
 
 22/10/2026 17h01Atualizado22/10/2026
@@ -415,7 +375,7 @@ VÍDEOS: Mais assistidos do g1 Paraná
 
 De segunda a sábado, as notícias que você não pode perder diretamente no seu e-mail.
 
-Para se inscrever, entre ou crie uma conta Globo gratuita.";https://g1.globo.com/pr/norte-noroeste/noticia/2026/10/22/dois-policiais-militares-sao-afastados-das-funcoes-em-colegio-civico-militar-do-parana-apos-alunas-denunciarem-camera-instalada-no-banheiro.ghtml;g1_parana;2026-10-23T17:20:26.081734+00:00;56b54e76dffff3dcaec9bb96da465916b498464f3ba6ed171766db2caeba2113
+Para se inscrever, entre ou crie uma conta Globo gratuita.";https://g1.globo.com/pr/norte-noroeste/noticia/2026/10/22/dois-policiais-militares-sao-afastados-das-funcoes-em-colegio-civico-militar-do-parana-apos-alunas-denunciarem-camera-instalada-no-banheiro.ghtml;g1_parana;2026-10-23T17:20:26.081734+00:00;56b54e76dffff3dcaec9bb96da465916b498464f3ba6ed171766db2caeba2113;"{""tipo"":""artigo"",""metodo"":""revisao_documentada"",""urlOrigem"":""https://g1.globo.com/pr/norte-noroeste/noticia/2026/10/22/dois-policiais-militares-sao-afastados-das-funcoes-em-colegio-civico-militar-do-parana-apos-alunas-denunciarem-camera-instalada-no-banheiro.ghtml"",""content_hash"":""56b54e76dffff3dcaec9bb96da465916b498464f3ba6ed171766db2caeba2113""}";"{""estado"":""aprovado"",""em"":""2026-11-15"",""url"":""https://g1.globo.com/pr/norte-noroeste/noticia/2026/10/22/dois-policiais-militares-sao-afastados-das-funcoes-em-colegio-civico-militar-do-parana-apos-alunas-denunciarem-camera-instalada-no-banheiro.ghtml"",""content_hash"":""56b54e76dffff3dcaec9bb96da465916b498464f3ba6ed171766db2caeba2113"",""referencia"":""RELATORIO_TESTES.md#f10; .artifacts/audit-2026-11-15/catalog-url-check.json"",""escopo"":""Identidade de artigo, URL, título e corpo coletado. Não confirma a veracidade das alegações.""}";
 VÍDEO: temporal arranca telhados de dois colégios no Paraná, suspende aulas e muda local de votação de 3,2 mil eleitores;2026-10-23T12:49:59.380000-03:00;"Por g1 PR e RPC Foz do Iguaçu— Foz do Iguaçu
 
 23/10/2026 12h49Atualizado23/10/2026
@@ -472,77 +432,4 @@ Leia mais notícias nog1 Paraná
 
 De segunda a sábado, as notícias que você não pode perder diretamente no seu e-mail.
 
-Para se inscrever, entre ou crie uma conta Globo gratuita.";https://g1.globo.com/pr/oeste-sudoeste/noticia/2026/10/23/video-temporal-arranca-telhados-de-dois-colegios-no-parana.ghtml;g1_parana;2026-10-23T17:20:28.008882+00:00;9ffaf6178792273e5c4df20dbc9055965eb78579e648029cf71174b7821ca13e
-A seguir! / Acompanhe tudo o que rola na Colmeia;2026-10-23T11:00:07+00:00;"REPOSITORES DE MERCERARIA, FRIOS, HORTIFRUTI, BAZARAGENTES DE PREVENÇÃOZELADORESAJUDANTE DE DEPÓSITOOPERADORES DE CAIXAAUXILIAR DE AÇOUGUEAÇOUGUEIROSATENDENTE DE BALCÃOEMPACOTADORAUXILIAR DE ESTACIONAMENTOMOTORISTAAUXILIAR DE PRODUÇÃOInteressados ir na unidade mais próxima da sua residência: Super Muffato, MAX Atacadista e Centros de Distribuição (19/08).
-
-Interessados entrar em contato pelo telefone: (45) 99927-0379. (19/10).
-
-ZELADORAInteressados entrar em contato pelo telefone: (45) 3038-1818. (27/09)
-
-AUXILIAR DE PRODUÇÃOAUXILIAR DE EXPEDIÇÃOOPERADOR DE MÁQUINASMONTADOR SOLDADORSERVENTE GERALInteressados entrar em contato pelo fone: (45) 3228-3434. (16/10)
-
-OPERADOR DE SECADOR E BALANCEIRO COM EXPERIÊNCIAInteressados entrar em contato pelo WhatsApp: (45)9 9980-1819. (03/09)
-
-MOTORISTA CAMINHÃO MUNCK COM EXPERIÊNCIAMEIO OFICIAL COM EXPERIÊNCIAELETRICISTA COM EXPERIÊNCIAELETRICISTA LV COM EXPERIÊNCIAPROJETISTA ELÉTRICOInteressados entrar em contato pelo telefone: (45) 9954-0308. (08/09)
-
-AUXILIAR ADMINISTRATIVO- SETOR FINANCEIROInteressados entrar em contato pelo telefone: (45) 3321-6000. (11/09)
-
-AUXILIAR DE ORIENTAÇÃOInteressados enviar currículo para o e-mail: Viviane.lopes@unidadekumon.com.br. (18/08)
-
-ELETRICISTA LINHA VIVAAJUDANTE DE ELETRICISTAMOTORISTA OPERADOR DE MUNCKELETRICISTAInteressados entrar em contato pelo WhatsApp: (45) 99954-0308. (13/08)
-
-PROFISSIONAL PARA MANEJO DE GADO NELORE COM EXPERIÊNCIA.Interessados entrar em contato pelo WhatsApp: (45) 9911-9459. (12/08)
-
-OFICIAL (PEDREIRO)SERVENTE DE PEDREIROOPERADOR DE RETROESCAVADEIRAInteressados entrar em contato pelo telefone: (45) 99969-3255. (05/08)
-
-TAPECEIRO(A) COM EXPERIÊNCIA EM CAPITONÊMARCENEIRO COM EXPERIÊNCIAInteressados entrar em contato pelo telefone: (45) 99957-0203. (19/08)
-
-AUXILIAR DE COZINHA COM EXPERIÊNCIAInteressados entrar em contato pelo telefone: (45) 99965-1175. (23/07)
-
-COSTUREIRA COM EXPERIÊNCIA – MÁQUINA RETA E OVERLOQUEPASSADEIRA –MEIO PERÍODOAUXILIAR DE COSTURA COM EXPERIÊNCIAInteressados falar com Felipe: (45)3324-0144. (15/07)
-
-MOTORISTA OPERADOR DE MUNCK – COM EXPERIÊNCIA MÍNIMA DE 01 ANO COMPROVADA EM CARTEIRA.
-
-ELETRICISTA – PREDIAL, RESIDENCIAL E INDUSTRIAL – COM EXPERIÊNCIA COMPROVADA EM CARTEIRA.
-
-AUXILIAR DE ELETRICISTA – TER EXPERIÊNCIA NA ÁREA SERÁ UM DIFERENCIAL.Interesados entrar em contato pelo telefone: (45) 3222-6250. (14/07)
-
-AUXILIAR DE ARMAZÉM – CAGEL – FERROESTEInteressados entrar em contato pelo telefone: (45) 9122-6114. (08/07)
-
-AUXILIAR ADMINISTRATIVOInteressados entrar em contato pelo telefone (45) 3038-1818. (06/07)
-
-PIZZAIOLOAUXILIAR DE COZINHA( NÃO É NECESSÁRIO TER EXPERIÊNCIA)VAGAS DISPONÍVEIS PARA CASCAVEL E TOLEDOInterressados entrar em contato pelo telefone: (45) 99862-9006. (06/07)
-
-AUXILIAR TÉCNICO DE REDESVENDEDOR EXTERNOSUPORTE EXTERNO N2SUPORTE INTERNOTÉCNICO EXTERNO INSTALAÇÃO E MANUNTENÇÃOASSISTENTE DE MARKETINGTÉCNICO EXTERNO
-
-Interessados enviar currículo pelo e-mail: recrutamento@dipelnet.com.br ou pelo site: https://dipelnet.vagas.solides.com.br/. (29/07)
-
-AUXILIAR DE LOGÍSTICAInteressados se cadastrar pelo site: https://forms.gle/Pgqd9F3uoagMAvSV9 (30/06)
-
-VENDEDORAInteressados entrar em contato pelo telefone: (45) 99954-0445. (19/06)
-
-CASAL PARA TRABALHAR E GRANJA DE PRODUCÃOInteressados entrar em contato pelo telefone: (45) 99847-2732. (16/06)
-
-OPERADOR DE CAIXAAUXILIAR FINANCEIROInteressados entrar em contato pelo telefone: (45) 99915-0011. (16/06)
-
-CASAL CASEIRO PARA ATUAR COM JARDINAGEM E SERVIÇOS DOMÉSTICOS EM CURITIBA/PRInteressados entrar em contato pelo telefone (45) 3035-2712 ou (45) 99932-0897. (10/06)
-
-COZINHEIRAInteressados falar com Vanessa: (45) 99937-8987. (09/06)
-
-VAGAS PARA O GRUPO OPEN – CASCAVELCAIXA ATENDIMENTO – GRUPO OPEN – CASCAVELAUXILIAR DE GARANTIA – GRUPO OPEN – CASCAVELCONSULTOR(A) DE VENDAS VEÍCULOS NOVOS – HYUNDAI OPEN – CASCAVELMECÂNICO AUTOMOTIVO – HYUNDAI OPEN – CASCAVELVENDEDOR(A) DE ACESSÓRIOS – HYUNDAI OPEN – CASCAVELAUXILIAR DE MECÂNICO – RENAULT OPEN – CASCAVELCONSULTOR DE VENDAS VEÍCULOS SEMINOVOS – CASCAVELVAGAS PARA O GRUPO OPEN – TOLEDOCONSULTOR(A) DE VENDAS VEÍCULOS NOVOS PRO+ – RENAULT OPEN – TOLEDO
-
-Interessados se cadastrar pelo site: https://grupoopenveiculos.vagas.solides.com.br/ou entrar em contato pelo telefone: (45) 9995-0249. (02/06)
-
-GARÇOMAUXILIAR DE COZINHACOZINHEIROAUXILIAR DE SUSHIMANSUSHIMANInteressados entrar em contato pelo telefone: (43) 98407-3529. (19/05)
-
-MECÂNICO DE ÔNIBUSInteressados entrar em contato pelo telefone: (42) 98877-0783. (05/05)
-
-TÉCNICO EM PANIFICAÇÃOInteressados entrar em contato pelo telefone: (46) 9132-0630. (14/05)
-
-AUXILIAR DE CARREGAMENTOASSISTENTE DE QUALIDADEInteressados entrar em contato pelo fone: (45) 99828-0647. (16/04)
-
-Inspetor (a) de QualidadePorteiro (a)Auxiliar de PCPMonitor (a) de Corte e DesossaVendedor Externo;Encarregado de Turno;Supervisor de Manutenção Industrial;Auxiliar de Serviços RuraisPedreiroAuxiliar de BalançaAuxiliar Corte e DesossaAuxiliar de Limpeza na RaçõesAuxiliar AbateAuxiliar de CozinhaAuxiliar de Manutenção Industrial – residir em Santa Tereza ou Lindoeste;Eletricista de Manutenção Industrial – residir em Juvinópolis ou Boa Vista da Aparecida;Mecânico de Manutenção Industrial;Técnico em Eletromecânica;Eletricista de Manutenção Industrial;Auxiliar de Manutenção Industrial;Operador (a) de Máquinas Fixas;Operador (a) de Caldeira;Auxiliar de Laboratório;Técnico (a) Segurança do Trabalho;Assistente Técnico (Boa Vista da Aparecida);Operador (a) Túnel de CongelamentoOperador (a) Máquinas Fixas I – Papelão Impressora Corte Vinco Coladeira;Operador (a) Máquinas Fixas I Frascos e Galões;Operado r(a) Compressor de Frios.Aprendiz Eletromecânica
-
-Auxiliar de Serviços de Cereais – CascavelAuxiliar de Serviços de Cereais – Céu AzulAuxiliar Administrativo – CorbéliaClassificador de Cereais – Sede AlvoradaClassificador de Cereais – São JoãoOperador Máquina – Sede AlvoradaAuxiliar Serviços Cereais – Rio da Paz_____________________________
-
-AçougueiroAgente de inspeção (qualidade)Agente de passagensAgente de vendas de serviçosAjudante de açougueiro (comércio)Ajudante de carga e descarga de mercadoriaAjudante de eletricistaAjudante de motoristaAjudante de obrasAjudante de padeiroAjudante de serralheiroAlmoxarifeAnalista contábilAnalista de controle de qualidadeAnalista de folha de pagamentoAnalista de pcp (programação e controle da produção)Analista de recursos humanosAnalista de sinistrosAnalista de suporteAplicador de isolante (coberturas)Armador de estrutura de concretoAssistente administrativoAssistente comercial de segurosAssistente de controladoriaAssistente de logística de transporteAssistente de mídias sociaisAssistente de prevenção de perdasAssistente de serviço de contabilidadeAssistente de vendasAtendente central telemarketingAtendente de balcãoAtendente de lanchoneteAtendente de padariaAtendente do setor de frios e laticíniosAtendente do setor de hortifrutigranjeirosAuxiliar administrativoAuxiliar de armazenamentoAuxiliar de confecçãoAuxiliar de confeitariaAuxiliar de costuraAuxiliar de cozinhaAuxiliar de estoqueAuxiliar de expediçãoAuxiliar de fermentaçãoAuxiliar de jardinagem na conservação de vias permanentesAuxiliar de laboratório de imunobiológicosAuxiliar de laboratorista de solos e de concretoAuxiliar de limpezaAuxiliar de linha de produçãoAuxiliar de logísticaAuxiliar de manutenção prediaAuxiliar de manutenção predialAuxiliar de mecânico de autosAuxiliar de padeiroAuxiliar de pintor de automóveisAuxiliar de produção – na confecção de roupasAuxiliar de sushimanAuxiliar de vidraceiroAuxiliar financeiroAuxiliar operacional de logísticaAuxiliar técnico na mecânica de máquinasAzulejistaBalconista de lanchoneteBoiadeiroCamareira de hotelCarpinteiroChefe de cozinhaConferente de controle de produçãoConsultor de vendasCostureira de máquina retaCostureira em geralCozinheiro de restauranteCozinheiro geralCuidador em saúdeDesenvolvedor de sistemas de tecnologia da informação (técnico)Educador socialEletricistaEletricista de instalações de veículos automotoresEletricista de instalações industriaisEletricista de manutenção industrialEletrotécnicoEmpacotador, a mãoEmpregado doméstico nos serviços geraisEncanadorEncarregado administrativoEncarregado de expediçãoEncarregado de obrasEncarregado de setor de concretoEngenheiro civilEstoquistaFaxineiroFiel de depósitoFiscal de caixaFiscal de lojaFiscal de prevenção de perdasGesseiroInspetor de qualidadeInstalador de som e acessórios de veículosInstalador de tubulações de gás combustível (produção e distribuição)JardineiroLaboratorista de concretoLavador de veículosLubrificador de automóveisMassoterapeutaMecânico de automóvelMecânico de manutenção de máquina industrialMecânico diesel (exceto de veículos automotores)Meia-colherMestre de obrasMonitor de sistemas eletrônicos de segurança externoMonitor externo de alarmesMontador de centrais elétricasMontador de elevadores e similaresMontador de móveis de madeiraMontador instalador de acessóriosMontador mecânico (máquinas industriais)Montador soldadorMotofretistaMotorista de caminhãoMotorista de caminhão basculanteMotorista de caminhão-guincho pesado com munkMotorista de furgãoMotorista de ônibus rodoviárioMotorista de táxiMotorista entregadorOficial de manutenção predialOficial de serviços gerais na manutenção de edificaçõesOperador de caixaOperador de caldeiraOperador de câmaras friasOperador de compressor de refrigeraçãoOperador de empilhadeiraOperador de escavadeiraOperador de máquinas de construção civil e mineraçãoOperador de máquinas de usinar madeira (cnc)Operador de máquinas fixas, em geralOperador de pá carregadeiraOperador de ponte rolanteOperador de processo de moagemOperador de rebobinadeira na fabricação de papel e papelãoOperador de retro-escavadeiraOperador de telemarketing ativoPadeiroPaisagistaPedreiroPintor a revólver (pintura eletrostática)Pintor de estruturas metálicasPintor industrialPizzaioloPreparador de sucata e aparasPreparador de tintasProjetista (arquiteto)Promotor de vendasRecepcionista, em geralRepositor – em supermercadosRepositor de mercadoriasRetalhador de carneSerralheiroServente de limpezaServente de pedreiroSoldadorSupervisor de vendas no varejoTécnico de edificaçõesTécnico de segurança do trabalhoTécnico de suporte ao usuário de tecnologia da informaçãoTécnico eletrônicoTécnico em eletromecânicaTécnico em segurança do trabalhoTopógrafoTorneiro mecânicoTrabalhador de serviços de limpeza e conservação de áreas públicasTrabalhador ruralTratorista operador de roçadeiraVendedor de comércio varejistaVendedor de consórcioVendedor de serviçosVendedor internoVendedor pracistaZelador";https://radiocolmeia.com.br/empregos;radio_colmeia;2026-10-23T17:21:29.454538+00:00;50dc1f20884c21413ec95ee170b58a3976109541695d158d2b61a94da2a2e754
+Para se inscrever, entre ou crie uma conta Globo gratuita.";https://g1.globo.com/pr/oeste-sudoeste/noticia/2026/10/23/video-temporal-arranca-telhados-de-dois-colegios-no-parana.ghtml;g1_parana;2026-10-23T17:20:28.008882+00:00;9ffaf6178792273e5c4df20dbc9055965eb78579e648029cf71174b7821ca13e;"{""tipo"":""artigo"",""metodo"":""revisao_documentada"",""urlOrigem"":""https://g1.globo.com/pr/oeste-sudoeste/noticia/2026/10/23/video-temporal-arranca-telhados-de-dois-colegios-no-parana.ghtml"",""content_hash"":""9ffaf6178792273e5c4df20dbc9055965eb78579e648029cf71174b7821ca13e""}";"{""estado"":""aprovado"",""em"":""2026-11-15"",""url"":""https://g1.globo.com/pr/oeste-sudoeste/noticia/2026/10/23/video-temporal-arranca-telhados-de-dois-colegios-no-parana.ghtml"",""content_hash"":""9ffaf6178792273e5c4df20dbc9055965eb78579e648029cf71174b7821ca13e"",""referencia"":""RELATORIO_TESTES.md#f10; .artifacts/audit-2026-11-15/catalog-url-check.json"",""escopo"":""Identidade de artigo, URL, título e corpo coletado. Não confirma a veracidade das alegações.""}";

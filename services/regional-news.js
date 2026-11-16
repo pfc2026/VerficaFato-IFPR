@@ -1,3 +1,5 @@
+import { isEligibleArticle } from './article-eligibility.js';
+
 // Common language and publication boilerplate must not make unrelated stories
 // appear relevant. This is a conservative lexical filter, never fact evidence.
 const STOP_WORDS = new Set(`a ao aos aquela aquele aquelas aqueles algo algumas alguns antes apos aqui assim ate cada caso como com contra da das de dela dele dessa desse desta deste dia dias disse do dos durante e ela ele elas eles em entre era eram essa esse esta estava estavam estas este estes eu foi foram ha hoje isso isto ja lhe mais mas me mesmo minha meu muito muita muitas muitos na nas nao nem nessa nesse nesta neste no nos noso nossa novas novo novos o os ou outra outro outras outros para pela pelas pelo pelos pode podem pois por porque qual quando que quem sao se sem ser sera seu seus sua suas sob sobre tambem tem tendo ter toda todo todas todos uma umas um uns voce voces anos ano ainda apenas agora segundo apos entanto alem ate sera neste momento noticia noticias reportagem video videos mostra mostram publicado publicada publicacao afirmou afirma informa informado informacao informacoes texto imagem imagens veja leia saiba entenda diz disse fato fatos checagem falso falsa verdadeiro verdadeira`.split(/\s+/));
@@ -10,7 +12,7 @@ export function regionalTerms(value) {
 export function rankRegionalNews(records, query, { limit = 3 } = {}) {
   const terms = regionalTerms(query);
   if (!terms.length) return [];
-  return (Array.isArray(records) ? records : []).map(item => {
+  return (Array.isArray(records) ? records : []).filter(isEligibleArticle).map(item => {
     const title = new Set(regionalTerms(item.titulo));
     const body = new Set(regionalTerms(item.texto));
     const titleMatches = terms.filter(term => title.has(term)).length;

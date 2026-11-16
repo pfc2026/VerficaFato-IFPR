@@ -18,6 +18,12 @@ backups/
 data/*.lock
 data/*.tmp
 data/.cleanup-*/
+# Conjunto de treino do TensorFlow (regenerável com scripts/coletar-*.mjs; contém textos de terceiros)
+data/treino-tf.json
+# Passagens internas entre assistentes
+EXPLICACAO_PARA_OUTRA_IA_VERIFICAFATO.md
+PROMPT_CONTINUACAO_VERIFICAFATO.md
+PROMPT_CORRECAO_VERIFICAFATO.md
 
 # Editor e sistema operacional
 .vscode/

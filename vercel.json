@@ -11,8 +11,10 @@
       "config": {
         "includeFiles": [
           "public/**",
+          "scraper/**",
           "data/noticias.json",
-          "data/legal-catalog.json"
+          "data/legal-catalog.json",
+          "data/modelo-padroes.json"
         ]
       }
     }

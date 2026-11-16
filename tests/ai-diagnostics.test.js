@@ -18,7 +18,7 @@ function successfulResponse(request) {
   const fields = request.generationConfig.responseFormat.text.schema.properties;
   const output = {
     resumo:fields.resumo.enum[0],orientacao:fields.orientacao.enum[0],classificacao:fields.classificacao.enum[0],
-    destaques:['a1'],feedback,referencias:[]
+    destaques:['a1'],feedback:fields.feedback.enum[0],referencias:[]
   };
   if (fields.contexto_juridico) output.contexto_juridico = {aplicavel:false,referencias:[]};
   return new Response(JSON.stringify({candidates:[{finishReason:'STOP',content:{role:'model',parts:[{text:JSON.stringify(output)}]}}]}),{headers:{'content-type':'application/json'}});

@@ -5,6 +5,7 @@ import bcrypt from 'bcryptjs';
 import { createApp } from '../server.js';
 import User from '../models/User.js';
 import Verificacao from '../models/Verificacao.js';
+import { analysisFixture } from './helpers/analysis-fixture.js';
 
 test('registration, login, profile and authenticated history preserve owner isolation', async t => {
   const previousSecret = process.env.JWT_SECRET;
@@ -45,10 +46,7 @@ test('registration, login, profile and authenticated history preserve owner isol
     const index = records.findIndex(item => item._id === filter._id && item.userId === filter.userId);
     return index < 0 ? null : records.splice(index, 1)[0];
   });
-  const analysis = {
-    schemaVersion: 2, veredito: 'Sem evidências suficientes', resultados: [], afirmacoes: [],
-    fontes: [], limitacoes: ['A ausência de checagem não prova verdade ou falsidade.']
-  };
+  const analysis = analysisFixture();
   const server = createApp({ dbReady: () => true, rateLimits: false, analyze: async () => structuredClone(analysis) }).listen(0, '127.0.0.1');
   await once(server, 'listening');
   t.after(() => new Promise(resolve => { server.close(resolve); server.closeAllConnections(); }));

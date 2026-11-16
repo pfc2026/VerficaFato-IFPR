@@ -1,5 +1,5 @@
 import { element, button, showNotice, getStoredUser } from './safe-dom.js';
-import { renderAnalysis, resultBadge } from './result-renderer.js';
+import { renderHistoryAnalysis, resultBadge } from './result-renderer.js';
 import { shareSite } from './share.js';
 import { mostrarModalPerfil } from './account.js';
 const showAlert = showNotice;
@@ -81,7 +81,7 @@ function pintarHistorico(itens) {
 function verDetalhes(index) {
   const item = itemsHistorico[index];
   if (!item) return;
-  renderAnalysis(document.getElementById('modalContent'), item);
+  renderHistoryAnalysis(document.getElementById('modalContent'), item);
   const share = document.getElementById('shareBtn');
   document.getElementById('shareStatus').textContent = '';
   if (share) share.onclick = () => shareSite();

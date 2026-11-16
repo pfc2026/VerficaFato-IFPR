@@ -761,3 +761,73 @@ body { background-color: #172d31; }
 .restored-results .legal-reference-fields dt { margin-top: .6rem; font-weight: 700; }
 .restored-results .legal-reference-fields dd { margin: .15rem 0 0; white-space: pre-line; }
 .restored-results .legal-more-references > summary { cursor: pointer; padding: .4rem 0; }
+.restored-results .factual-summary { border-left: 4px solid var(--secondary) !important; }
+.restored-results .factual-summary h3 { font-size: clamp(1.15rem, 4vw, 1.6rem); margin: .4rem 0 .7rem; }
+.restored-results .verdict-meaning { opacity: .8; }
+.restored-results .claim-result { border: 1px solid var(--border); border-radius: 10px; }
+.restored-results .claim-text { white-space: pre-line; }
+.restored-results .claim-findings dd { margin: .25rem 0 .8rem; }
+.restored-results .claim-evidence { border-left: 2px solid var(--secondary); padding-left: .7rem; }
+.restored-results .classification-guide summary { cursor: pointer; }
+.restored-results .percentage-circle .meter-percentage { font-size: 1.1rem !important; }
+
+/* Reference treatment: olive card, gold details and a compact circular gauge. */
+.compact-results .ai-estimate-summary {
+  --estimate-accent: #f2ae18;
+  --estimate-angle: 0deg;
+  background: #353b1d !important;
+  border: 1px solid #756126 !important;
+  border-radius: 14px !important;
+  color: #edf0e7;
+  padding: 1.2rem !important;
+  box-shadow: none;
+}
+.compact-results .estimate-heading { display: flex; align-items: center; justify-content: space-between; gap: 1rem; min-width: 0; }
+.compact-results .estimate-title { flex: 1; min-width: 0; }
+.compact-results .estimate-title-line { display: flex; align-items: center; gap: .5rem; min-width: 0; }
+.compact-results .estimate-title-line > i { color: var(--estimate-accent); font-size: 1.2rem; flex: 0 0 auto; }
+.compact-results .estimate-title h3 { color: #edf0e7; margin: 0; font-size: 1.06rem; font-weight: 750; line-height: 1.35; }
+.compact-results .estimate-kicker { display: block; color: #c9cebc; font-size: .75rem; line-height: 1.45; margin: .45rem 0 0; }
+.compact-results .estimate-gauge {
+  width: 86px;
+  height: 86px;
+  flex: 0 0 86px;
+  padding: 7px;
+  box-sizing: border-box;
+  border-radius: 50%;
+  background: conic-gradient(var(--estimate-accent) var(--estimate-angle), rgba(216,173,43,.22) 0deg);
+}
+.compact-results .estimate-gauge-inner { width: 100%; height: 100%; border-radius: 50%; background: #10291f; display: flex; align-items: center; justify-content: center; flex-direction: column; gap: .2rem; }
+.compact-results .estimate-percentage, .compact-results .estimate-empty { color: #edf0e7; font-size: 1.2rem; font-weight: 800; line-height: 1; letter-spacing: -.02em; }
+.compact-results .estimate-empty { font-size: 1.4rem; }
+.compact-results .estimate-gauge-label { color: #b9c3b1; font-size: .42rem; font-weight: 600; letter-spacing: .04em; line-height: 1.2; }
+.compact-results .estimate-track { height: .45rem; overflow: hidden; border-radius: 999px; background: rgba(222,226,197,.17); margin: 1rem 0 .3rem; }
+.compact-results .estimate-fill { height: 100%; border-radius: inherit; background: var(--estimate-accent); }
+.compact-results .estimate-scale { display: flex; align-items: flex-start; justify-content: space-between; gap: .5rem; color: #c7ccba; font-size: .6rem; line-height: 1.35; margin-bottom: .65rem; }
+.compact-results .estimate-scale > :nth-child(2) { text-align: center; }
+.compact-results .estimate-scale > :last-child { text-align: right; }
+.compact-results .estimate-description { display: flex; align-items: flex-start; gap: .5rem; border-top: 1px solid rgba(213,171,37,.16); padding-top: .6rem; margin: 0; color: #d6dcc9; font-size: .77rem; line-height: 1.55; }
+.compact-results .estimate-description > i { flex: 0 0 auto; color: var(--estimate-accent); font-size: .85rem; margin-top: .2rem; }
+.compact-results .estimate-disclaimer { display: block; color: #c5cbb8; font-size: .75rem; line-height: 1.5; margin-top: .65rem; }
+.compact-results .estimate-status { color: #d6dcc9; font-size: .78rem; line-height: 1.5; margin-top: .4rem; }
+.compact-results .gemini-feedback { padding: 1rem !important; }
+.compact-results .gemini-feedback h6 { font-size: .88rem; }
+.compact-results .gemini-feedback-text { margin-bottom: 0 !important; line-height: 1.55; }
+.compact-results .compact-sources { padding: .2rem .15rem; }
+.compact-results .compact-sources h6 { font-size: .85rem; }
+.compact-results .compact-sources .analysis-source-link { margin-right: 1rem; font-size: .85rem; }
+.compact-results .result-details { border-top: 1px solid var(--border); padding-top: .9rem; }
+.compact-results .result-details > summary { cursor: pointer; font-size: .9rem; font-weight: 600; padding: .3rem 0; }
+.compact-results .result-details > summary:focus-visible { outline: 2px solid var(--secondary); outline-offset: 4px; border-radius: 4px; }
+.compact-results .result-details-content { padding-top: 1rem; }
+.compact-results .result-details-content > :last-child { margin-bottom: 0 !important; }
+@media (max-width: 390px) {
+  .compact-results .estimate-heading { gap: .65rem; }
+  .compact-results .ai-estimate-summary { padding: 1rem !important; }
+  .compact-results .estimate-title h3 { font-size: 1rem; }
+  .compact-results .estimate-title-line { gap: .4rem; }
+  .compact-results .estimate-title-line > i { font-size: 1.05rem; }
+  .compact-results .estimate-gauge { width: 74px; height: 74px; flex-basis: 74px; padding: 6px; }
+  .compact-results .estimate-percentage { font-size: 1.08rem; }
+  .compact-results .estimate-gauge-label { font-size: .37rem; }
+}

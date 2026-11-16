@@ -10,7 +10,7 @@ import { createApp } from '../server.js';
 import { gerarToken } from '../middleware/auth.js';
 import User from '../models/User.js';
 import Verificacao from '../models/Verificacao.js';
-import { renderAnalysis } from '../public/js/result-renderer.js';
+import { renderAnalysis, renderHistoryAnalysis } from '../public/js/result-renderer.js';
 
 const fixture = JSON.parse(await readFile(new URL('./fixtures/relevance-flow.json', import.meta.url), 'utf8'));
 const externalReviews = formatReviews(fixture.googleResponse);
@@ -42,7 +42,7 @@ function assertOnlyRelevant(result, expected = [relevant]) {
     assert.ok(!JSON.stringify(result).includes(review.id), 'discarded evidence ID leaked');
   }
 }
-function render(t, record) {
+function render(t, record, historical = false) {
   const dom = new JSDOM('<!doctype html><div id="result"></div>', { url: 'https://verificafato.example' });
   const previous = { document: globalThis.document, DOMParser: globalThis.DOMParser };
   globalThis.document = dom.window.document;
@@ -50,7 +50,7 @@ function render(t, record) {
   t.after(() => dom.window.close());
   const root = dom.window.document.getElementById('result');
   try {
-    renderAnalysis(root, record);
+    (historical ? renderHistoryAnalysis : renderAnalysis)(root, record);
   } finally {
     for (const [key, value] of Object.entries(previous)) {
       if (value === undefined) delete globalThis[key]; else globalThis[key] = value;
@@ -174,7 +174,7 @@ test('real HTTP analysis, new authenticated history data and restored cards reta
   assert.deepEqual(ids(itens[0].dadosAPI), ids(dados.resultados));
   const directCards = cardUrls(render(t, dados));
   // The history renderer prefers the stored v2 result even if a legacy field is stale.
-  const restored = render(t, { ...itens[0], dadosAPI: [...externalReviews] });
+  const restored = render(t, { ...itens[0], dadosAPI: [...externalReviews] }, true);
   assert.deepEqual(cardUrls(restored), directCards);
   assert.deepEqual(directCards, [relevant.url_verificacao]);
   assert.equal(restored.querySelectorAll('.verification-item').length, dados.quantidade);

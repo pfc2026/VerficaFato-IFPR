@@ -12,11 +12,12 @@ import User from '../models/User.js';
 import Verificacao from '../models/Verificacao.js';
 import ConteudoEdu from '../models/ConteudoEdu.js';
 import { HttpError } from '../services/errors.js';
+import { analysisFixture } from './helpers/analysis-fixture.js';
 
 process.env.JWT_SECRET = 'backend-tests-only-isolated-secret-with-48-bytes';
 const userId = '507f1f77bcf86cd799439011';
 const otherId = '507f1f77bcf86cd799439012';
-const fixture = { schemaVersion: 2, veredito: 'não verificável', porcentagem: null, confianca: null, explicacao: 'Sem evidência suficiente.', resultados: [], afirmacoes: [], fontes: [], secoes: { resumo: 'Teste', resultado: 'Inconclusivo', encontramos: [], linguagem: [], orientacao: 'Confira fontes.', limitacoes: [] }, limitacoes: [], analiseLinguagem: {} };
+const fixture = analysisFixture();
 const baseUser = () => ({ _id: userId, nome: 'Usuário teste', email: 'teste@example.org', role: 'user', cidade: 'Toledo', ativo: true, tokenVersion: 0, senha: 'must-never-be-public' });
 function signed(payload, header = { alg: 'HS256', typ: 'JWT' }) {
   const head = Buffer.from(JSON.stringify(header)).toString('base64url');

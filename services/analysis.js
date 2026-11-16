@@ -3,12 +3,15 @@ import { obterConteudoDaUrl } from './extraction.js';
 import { verificarNoticia } from './fact-check.js';
 import { extractClaims, languageIndicators } from './claims.js';
 import { analyzeLanguage } from './tensorflow.js';
-import { evaluateClaim, consolidate, VERDICTS } from './evidence.js';
-import { generateExplanation } from './explanation.js';
+import { evaluateClaim, consolidate, VERDICTS, VERDICT_DEFINITIONS } from './evidence.js';
+import { generateExplanation, explanationUnavailable } from './explanation.js';
 import { HttpError } from './errors.js';
 import { createLimiter } from './limits.js';
 import { criarAnaliseVisual } from './verification-indicators.js';
 import { filterRelevantReviews, deduplicateReviews } from './relevance.js';
+import { isEligibleArticle } from './article-eligibility.js';
+import { normalizeAiEstimate } from '../public/js/ai-estimate.js';
+import { calcularIndice, factCheckComponent } from './indice-veracidade.js';
 
 const inputSchema = z.object({
   texto:z.string().trim().max(20000).optional(),link:z.string().trim().max(2048).optional(),
@@ -24,7 +27,7 @@ function validateInput(body) {
   return parsed.data;
 }
 function safeNews(records) {
-  return (Array.isArray(records)?records:[]).slice(0,3).flatMap(n => {
+  return (Array.isArray(records)?records:[]).filter(isEligibleArticle).slice(0,3).flatMap(n => {
     try {
       const url = new URL(n.url);
       if (!['http:','https:'].includes(url.protocol) || url.username || url.password) return [];
@@ -57,6 +60,7 @@ async function analyze(input,{
   const limitations = [
     'A extração de afirmações usa regras e pode omitir contexto, confundir opiniões ou não separar todos os fatos.',
     'A busca Google cobre apenas checagens indexadas; resultados vazios não indicam verdade ou falsidade.',
+    'Esta análise processa texto; não examina os arquivos originais de imagem, áudio, vídeo ou documento. Uma conclusão sobre adulteração depende de checagem publicada correspondente e é atribuída à fonte.',
     'A equivalência factual não é inferida por similaridade. Somente correspondência textual com data válida e avaliação reconhecida pode fundamentar uma classificação automática atribuída à fonte.'
   ];
   if (omitted) limitations.push(omitted + ' trecho(s) foram omitidos por serem curtos, numéricos ou excederem oito afirmações/2.000 caracteres por afirmação; não foram verificados.');
@@ -80,6 +84,7 @@ async function analyze(input,{
   limitations.push(...(language.tensorflow?.limitacoes || []));
   if (checks.some(c=>!c.apiDisponivel)) limitations.push(...new Set(checks.filter(c=>!c.apiDisponivel).map(c=>c.erroAPI || 'A consulta Google não foi concluída.')));
   if (regionalResult.length) limitations.push('Notícias do acervo regional são referências de contexto, sem confirmar automaticamente a afirmação.');
+  else if (buscarRegionais) limitations.push('Nenhuma reportagem regional com proveniência e revisão elegíveis foi encontrada para esta entrada.');
   if (!reviews.length) limitations.push('Não foi encontrada checagem tematicamente pertinente às afirmações consultadas. Resultados apenas do mesmo veículo ou sobre outros assuntos foram descartados. Isso não confirma nem desmente o conteúdo.');
   const afirmacoes = claims.map(claim=>{
     const checkResult = checks.find(c=>c.id === claim.id);
@@ -89,22 +94,31 @@ async function analyze(input,{
     if (!evaluated.consultaCompleta && evaluated.tipo === 'fato') {
       evaluated.veredito = VERDICTS.UNKNOWN;
       evaluated.justificativa = 'A consulta às checagens não foi concluída. Os resultados parciais abaixo não sustentam uma conclusão.';
+      evaluated.evidenciasUtilizadas = [];
+      evaluated.constatacoes = {confirmado:[],refutado:[],semComprovacao:[claim.texto]};
     }
     return evaluated;
   });
+  limitations.push(...afirmacoes.flatMap(claim=>claim.limitacoes || []));
   const incomplete = omitted > 0 || checks.some(c=>!c.apiDisponivel);
   const veredito = consolidate(afirmacoes,{incomplete});
+  const mixed = new Set(afirmacoes.filter(claim=>claim.tipo === 'fato').map(claim=>claim.veredito)).size > 1;
   const justificativa = veredito === VERDICTS.UNKNOWN ?
-    'Uma ou mais afirmações permanecem sem evidência suficiente, têm avaliações conflitantes ou não puderam ser verificadas por completo.' :
+    (mixed ? 'As afirmações têm resultados diferentes; não há fundamento para atribuir um único rótulo ao conteúdo. Consulte cada resultado abaixo.' :
+    'Uma ou mais afirmações permanecem sem evidência suficiente, têm avaliações conflitantes ou não puderam ser verificadas por completo.') :
     veredito === VERDICTS.UNVERIFIABLE ? 'Os trechos identificados não apresentam um fato objetivamente verificável nos termos enviados.' :
-    'As afirmações verificáveis analisadas têm avaliações publicadas correspondentes. Confira as fontes e o contexto de cada checagem.';
+    facts.length === 1 ? afirmacoes.find(claim=>claim.tipo === 'fato').justificativa :
+    'As afirmações verificáveis analisadas receberam a mesma classificação em checagens publicadas correspondentes. A conclusão é atribuída às fontes; confira cada afirmação abaixo.';
+  const usedIds = new Set(afirmacoes.flatMap(claim=>claim.evidenciasUtilizadas || []));
   const fontes = [
-    ...reviews.map(r=>({id:r.id,titulo:r.titulo_verificacao || r.texto_verificado,url:r.url_verificacao,verificador:r.verificador,data:r.data_verificacao,tipo:'checagem'})),
+    ...reviews.map(r=>({id:r.id,titulo:r.titulo_verificacao || r.texto_verificado,url:r.url_verificacao,verificador:r.verificador,data:r.data_verificacao,tipo:'checagem',
+      utilizada:usedIds.has(r.id),afirmacaoVerificada:r.texto_verificado,avaliacaoOriginal:r.avaliacao,dataAlegacao:r.data_alegacao || null,autorAlegacao:r.autor_alegacao || null})),
     ...regionalResult.map((n,i)=>({id:'n'+i,titulo:n.titulo,url:n.url,verificador:n.fonte,data:n.data_publicacao,tipo:'noticia'}))
   ];
   const analiseVisual = criarAnaliseVisual(text, { afirmacoes, classificacao: veredito, incompleta: incomplete });
   const result = {
-    schemaVersion:2,tipoEntrada:isUrl?'url':'texto',veredito,classificacao:veredito,porcentagem:null,confianca:null,
+    schemaVersion:2,tipoEntrada:isUrl?'url':'texto',veredito,classificacao:veredito,
+    porcentagem:null,confianca:null,
     justificativa,afirmacoes,resultados:reviews,encontrados:reviews.length > 0,quantidade:reviews.length,
     apiDisponivel:checks.length ? checks.every(c=>c.apiDisponivel) : null,
     erroAPI:checks.find(c=>!c.apiDisponivel)?.erroAPI,
@@ -112,12 +126,29 @@ async function analyze(input,{
     analiseLinguagem:language,fontes,limitacoes:[...new Set(limitations)],
     analiseVisual, analiseLocal: analiseVisual.analiseLocal, dimensoes: analiseVisual.dimensoes
   };
+  result.indiceVeracidade = calcularIndice({ tensorflow: language.tensorflow?.padroes,
+    factCheck: factCheckComponent(reviews, language.comparacoes || [], claims) });
+  result.parecerIntegrado = {versao:1,classificacao:veredito,criterio:VERDICT_DEFINITIONS[veredito],
+    evidenciasUtilizadas:[...usedIds],resultadosMistos:mixed,midiaAnalisada:false};
+  result.classificacoes = VERDICT_DEFINITIONS;
+  result.servicos = {
+    googleFactCheck:{status:checks.length ? (checks.every(check=>check.apiDisponivel) ? 'ok' : 'incompleto') : 'nao_consultado',
+      consultas:checks.map(check=>({afirmacaoId:check.id,status:check.status || (check.apiDisponivel ? 'ok' : 'indisponivel'),completa:check.apiDisponivel === true}))},
+    tensorflow:{status:language.tensorflow?.disponivel ? 'ok' : 'indisponivel',metodo:language.tensorflow?.metodo || null},
+    gemini:{status:'pendente'}
+  };
   let generated;
   try { generated = await explain(result,{signal}); }
-  catch { generated = await generateExplanation(result,{enabled:false}); }
+  catch { generated = await explanationUnavailable(result); }
+  // Sem checagem publicada da mesma afirmação, o conhecimento geral do Gemini entra no índice (peso público em indice-veracidade.js).
+  if (Number.isInteger(generated.conhecimentoIA) && !result.indiceVeracidade.componentes?.factCheck)
+    result.indiceVeracidade = calcularIndice({ tensorflow: language.tensorflow?.padroes, factCheck: null, gemini: generated.conhecimentoIA });
   result.secoes = generated.secoes;
   result.geracao = generated.geracao;
   result.feedbackGemini = generated.feedbackGemini;
+  result.estimativaIA = generated.estimativaIA || normalizeAiEstimate(undefined,{provider:generated.geracao.provedor,model:generated.geracao.modelo,result});
+  result.servicos.gemini = {status:generated.geracao.status === 'ia' ? 'ok' : (generated.geracao.estado || 'indisponivel'),
+    provedor:generated.geracao.provedor || 'gemini',motivo:generated.geracao.motivo || null};
   result.contexto_juridico = generated.contexto_juridico || {aplicavel:false,referencias:[]};
   result.resumo = result.secoes.resumo;
   if (result.geracao.status === 'local' && process.env.ENABLE_AI_EXPLANATION === 'true') {

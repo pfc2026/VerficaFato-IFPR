@@ -1,7 +1,8 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { JSDOM } from 'jsdom';
-import { renderAnalysis } from '../public/js/result-renderer.js';
+import { renderAnalysis, renderHistoryAnalysis } from '../public/js/result-renderer.js';
+import { analysisFixture } from './helpers/analysis-fixture.js';
 
 function reference(overrides={}) {
   return {
@@ -23,7 +24,7 @@ function browser(t) {
   const root=document.getElementById('result');
   return {
     root,
-    render(contexto_juridico,extra={}) {renderAnalysis(root,{schemaVersion:2,contexto_juridico,...extra});return root;}
+    render(contexto_juridico,extra={}) {renderAnalysis(root,analysisFixture({contexto_juridico,...extra}));return root;}
   };
 }
 
@@ -93,8 +94,8 @@ test('texto jurídico hostil não executa conteúdo e referências duplicadas n�
 
 test('histórico v2 preserva jurídico e feedback identifica o provedor selecionado',t=>{
   const app=browser(t);
-  renderAnalysis(app.root,{resultado:{schemaVersion:2,contexto_juridico:{aplicavel:true,referencias:[reference()]},feedbackGemini:{status:'ia',provedor:'openai',texto:'Confira as fontes originais antes de compartilhar.'}}});
+  renderHistoryAnalysis(app.root,{resultado:{schemaVersion:2,contexto_juridico:{aplicavel:true,referencias:[reference()]},feedbackGemini:{status:'ia',provedor:'openai',texto:'Confira as fontes originais antes de compartilhar.'}}});
   assert.ok(app.root.querySelector('.legal-context'));
-  assert.match(app.root.querySelector('.gemini-feedback h6').textContent,/Feedback da OpenAI/);
+  assert.match(app.root.querySelector('.gemini-feedback h6').textContent,/Análise da OpenAI/);
   assert.doesNotMatch(app.root.querySelector('.gemini-feedback').textContent,/Gemini/);
 });

@@ -26,7 +26,7 @@ function pipeline(text,{references=[],legal,check,fetchOverride}={}) {
         const request=JSON.parse(init.body);payload=JSON.parse(request.contents[0].parts[0].text);
         if (fetchOverride) return fetchOverride(url,init);
         const fields=request.generationConfig.responseFormat.text.schema.properties;
-        const output={resumo:fields.resumo.enum[0],orientacao:fields.orientacao.enum[0],destaques:[],feedback:safeFeedback,referencias:[],classificacao:result.veredito,
+        const output={resumo:fields.resumo.enum[0],orientacao:fields.orientacao.enum[0],destaques:[],feedback:fields.feedback.enum[0],referencias:[],classificacao:result.veredito,
           contexto_juridico:legal===undefined?{aplicavel:references.length>0,referencias:references}:legal};
         return new Response(JSON.stringify({candidates:[{finishReason:'STOP',content:{role:'model',parts:[{text:JSON.stringify(output)}]}}]}));
       }
@@ -88,7 +88,7 @@ test('invalid law/article/URL or malformed legal field only discards the legal p
     {aplicavel:true,referencias:[selection('cp-317',corruption,{artigo:'999999'})]}
   ]) {
     const p=pipeline(corruption,{legal});const r=await p.run();assert.equal(p.observed().calls,1);
-    assert.equal(r.geracao.status,'ia');assert.equal(r.feedbackGemini.texto,safeFeedback);assert.equal(r.contexto_juridico.aplicavel,false);
+    assert.equal(r.geracao.status,'ia');assert.match(r.feedbackGemini.texto,/não confirma nem desmente/);assert.equal(r.contexto_juridico.aplicavel,false);
   }
 });
 
@@ -98,8 +98,8 @@ test('HTTP route → real TensorFlow → single mocked Gemini → shared DOM ren
   t.after(()=>new Promise(resolve=>{server.close(resolve);server.closeAllConnections();}));
   const response=await fetch(`http://127.0.0.1:${server.address().port}/api/verificar`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({texto:corruption})});
   const data=await response.json();assert.equal(response.status,200);assert.equal(data.sucesso,true);assert.equal(p.observed().calls,1);
-  assert.equal(data.dados.schemaVersion,2);assert.equal(data.dados.porcentagem,null);assert.ok(data.dados.analiseVisual);
+  assert.equal(data.dados.schemaVersion,2);assert.equal(data.dados.porcentagem,null);assert.equal(data.dados.confianca,null);assert.equal(data.dados.analiseVisual.porcentagem,null);assert.ok(data.dados.analiseVisual);
   const dom=new JSDOM('<div id="result"></div>'),previous=globalThis.document;globalThis.document=dom.window.document;
-  try {const root=document.getElementById('result');renderAnalysis(root,data.dados);assert.ok(root.querySelector('.legal-context'));assert.equal(root.querySelector('.gemini-feedback-text').textContent,safeFeedback);assert.equal(root.querySelectorAll('.analysis-card').length,3);}
+  try {const root=document.getElementById('result');renderAnalysis(root,data.dados);assert.ok(root.querySelector('.legal-context'));assert.equal(root.querySelector('.gemini-feedback-text').textContent,data.dados.feedbackGemini.texto);assert.equal(root.querySelectorAll('.analysis-card').length,0);assert.equal(root.querySelector('.result-details').open,false);}
   finally {globalThis.document=previous;dom.window.close();}
 });

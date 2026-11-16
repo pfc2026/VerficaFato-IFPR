@@ -22,7 +22,7 @@ function output(init,provider='gemini') {
   const schema=provider==='gemini'?request.generationConfig.responseFormat.text.schema:request.text.format.schema;
   return {
     resumo:schema.properties.resumo.enum[0],orientacao:schema.properties.orientacao.enum[0],
-    destaques:['a1'],referencias:[],feedback,classificacao:schema.properties.classificacao.enum[0],
+    destaques:['a1'],referencias:[],feedback:schema.properties.feedback.enum[0],classificacao:schema.properties.classificacao.enum[0],
     contexto_juridico:{aplicavel:true,referencias:[{
       id:'cp-317',categoria:'acontecimento_noticiado',trecho_noticia:news,
       situacao_juridica:'Investigação',trecho_situacao:'está sendo investigado por possível corrupção passiva'
@@ -74,7 +74,10 @@ test('Gemini 503 then valid 200 retries the same request once and preserves veri
   assert.equal(result.contexto_juridico.referencias[0].id,'cp-317');
   assert.equal(result.contexto_juridico.referencias[0].verificada,true);
   assert.equal(result.contexto_juridico.referencias[0].situacao_juridica,'Investigação');
-  assert.deepEqual(result.feedbackGemini,{texto:feedback,status:'ia',provedor:'gemini',modelo:model,referencias:[]});
+  const authorized=JSON.parse(requests[1].body).generationConfig.responseFormat.text.schema.properties.feedback.enum;
+  assert.ok(authorized.includes(result.feedbackGemini.texto));
+  assert.equal(result.feedbackGemini.status,'ia');assert.equal(result.feedbackGemini.provedor,'gemini');
+  assert.equal(result.feedbackGemini.modelo,model);assert.deepEqual(result.feedbackGemini.referencias,[]);
   assert.deepEqual(base,before);
   assert.ok(!JSON.stringify({result,logs}).includes(key));
 });

@@ -28,13 +28,13 @@ const SINAIS_FALSO = [
     { regex: /plano (secreto|oculto) (mundial|globalista)|nova ordem mundial/gi, peso: 16, label: 'Referência a teoria conspiratória global', categoria: 'Conspiração/Desconfiança institucional' },
 
     // Saúde / pseudociência (peso alto: risco real de dano)
-    { regex: /vacina[s]?[^.]{0,40}(mata|matam|veneno|chip|5g|magnetiza|esteriliza)/gi, peso: 22, label: 'Desinformação sobre vacinas', categoria: 'Saúde/Pseudociência' },
+    { regex: /vacina[s]?[^.]{0,40}(mata|matam|veneno|chip|5g|magnetiza|esteriliza)/gi, peso: 22, label: 'Menção a alegações sobre vacinas', categoria: 'Saúde/Pseudociência' },
     { regex: /cura (milagrosa|definitiva|secreta|natural)( para| de)? (câncer|covid|diabetes)/gi, peso: 18, label: 'Promessa de cura milagrosa', categoria: 'Saúde/Pseudociência' },
     { regex: /(indústria|big) farma (esconde|não quer)/gi,            peso: 14, label: 'Narrativa contra indústria farmacêutica', categoria: 'Saúde/Pseudociência' },
-    { regex: /sem comprovação científica|não aprovado pela anvisa/gi, peso: 12, label: 'Tratamento sem aprovação/comprovação citado como eficaz', categoria: 'Saúde/Pseudociência' },
+    { regex: /sem comprovação científica|não aprovado pela anvisa/gi, peso: 12, label: 'Menção à falta de comprovação ou aprovação de tratamento', categoria: 'Saúde/Pseudociência' },
 
     // Política / eleitoral
-    { regex: /fraude (eleitoral|nas urnas)|urnas? (fraudada|manipulada)/gi, peso: 16, label: 'Alegação de fraude eleitoral sem fonte', categoria: 'Política/Eleitoral' },
+    { regex: /fraude (eleitoral|nas urnas)|urnas? (fraudada|manipulada)/gi, peso: 16, label: 'Menção a alegação de fraude eleitoral', categoria: 'Política/Eleitoral' },
     { regex: /candidato [^.]{0,40}(preso|condenado) (?!.*(segundo|fonte|processo n))/gi, peso: 10, label: 'Acusação grave sobre candidato sem citar processo/fonte', categoria: 'Política/Eleitoral' },
 ];
 
@@ -42,28 +42,17 @@ const SINAIS_CONFIAVEL = [
     // Atribuição e fontes oficiais
     { regex: /segundo\s+(o\s+|a\s+)?(governo|prefeitura|secretaria|ministério)\s+(de|do|da)?\s*[\wÀ-ú]+/gi, peso: 11, label: 'Cita órgão oficial nomeado', categoria: 'Fonte/Atribuição' },
     { regex: /de acordo com (a |o )?(pesquisa|estudo|levantamento|relatório)/gi, peso: 9,  label: 'Referencia pesquisa/estudo/relatório', categoria: 'Fonte/Atribuição' },
-    { regex: /https?:\/\/[^\s]+/gi,                                   peso: 7,  label: 'Contém link verificável como fonte', categoria: 'Fonte/Atribuição' },
+    { regex: /https?:\/\/[^\s]+/gi,                                   peso: 7,  label: 'Contém link citado como fonte', categoria: 'Fonte/Atribuição' },
     { regex: /publicado em \d{1,2}\/\d{1,2}\/\d{2,4}|em \d{1,2} de \w+ de \d{4}/gi, peso: 7, label: 'Data de publicação clara', categoria: 'Estrutura do texto' },
     { regex: /por\s+[A-ZÀ-Ú][\wÀ-ú]+\s+[A-ZÀ-Ú][\wÀ-ú]+,?\s*(da redação|repórter|jornalista)/gi, peso: 8, label: 'Assinatura de jornalista identificado', categoria: 'Fonte/Atribuição' },
     { regex: /nota oficial|comunicado oficial|decreto n[ºo°]?\s*\d+/gi, peso: 12, label: 'Cita documento ou nota oficial específica', categoria: 'Fonte/Atribuição' },
-    { regex: /g1|gazeta do povo|folha de s\.?\s?paulo|o\s?estad[ãa]o|agência brasil|cnn brasil|band news/gi, peso: 9, label: 'Menciona veículo jornalístico reconhecido', categoria: 'Fonte/Atribuição' },
+    { regex: /g1|gazeta do povo|folha de s\.?\s?paulo|o\s?estad[ãa]o|agência brasil|cnn brasil|band news/gi, peso: 9, apenasDescritivo: true, label: 'Menciona veículo jornalístico reconhecido', categoria: 'Fonte/Atribuição' },
     { regex: /segundo (a |o )?(assessoria|porta-voz)/gi,              peso: 7,  label: 'Cita assessoria/porta-voz como fonte', categoria: 'Fonte/Atribuição' },
 
     // Linguagem mais neutra/factual
     { regex: /em nota,? (a|o)|afirmou em entrevista|declarou à reportagem/gi, peso: 6, label: 'Inclui declaração formal de uma das partes', categoria: 'Estrutura do texto' },
     { regex: /\b\d{1,3}([.,]\d+)?\s?%|\bR\$\s?\d/gi,                  peso: 4,  label: 'Contém dados numéricos/estatísticos específicos', categoria: 'Estrutura do texto', max: 3 },
 ];
-
-function mapearAvaliacaoAPI(textualRating) {
-    const r = (textualRating || '').toLowerCase();
-    if (/\b(falso|fake|false|incorreto|mentira|inverdade|fraude|fabricado)\b/.test(r)) return 5;
-    if (/\b(enganoso|misleading|distorcido|fora de contexto|parcialmente falso)\b/.test(r)) return 25;
-    if (/\b(exagerado|impreciso|sem evidências?( suficientes)?|não comprovado)\b/.test(r)) return 35;
-    if (/\b(inconclusivo|em apuração|controverso|depende|debatido)\b/.test(r)) return 50;
-    if (/\b(parcialmente verdadeiro|parcialmente correto|em parte verdadeiro)\b/.test(r)) return 60;
-    if (/\b(verdadeiro|true|correto|preciso|confirmado|comprovado)\b/.test(r)) return 95;
-    return null;
-}
 
 function analisarTextoLocalmente(texto) {
     let pesoFalso     = 0;
@@ -86,30 +75,27 @@ function analisarTextoLocalmente(texto) {
         if (matches) {
             const ocorrencias = matches.length;
             const limite = sinal.max || 2;
-            pesoConfiavel += sinal.peso * Math.min(ocorrencias, limite);
+            if (!sinal.apenasDescritivo) pesoConfiavel += sinal.peso * Math.min(ocorrencias, limite);
             alertasConfiavel.push({ label: sinal.label, ocorrencias, categoria: sinal.categoria });
         }
     });
 
-    if (texto.length > 300) pesoConfiavel += 4;
-    if (texto.length > 600) pesoConfiavel += 4;
-    if (texto.length < 80 && pesoFalso > 0) pesoFalso += 8;
-
-    const total = pesoFalso + pesoConfiavel;
-    let porcentagemLocal;
-    if (total === 0) {
-        porcentagemLocal = 50;
-    } else {
-        const rawScore = (pesoConfiavel / (pesoFalso + pesoConfiavel)) * 100;
-        porcentagemLocal = Math.round(Math.max(8, Math.min(74, rawScore)));
-    }
+    // This is a descriptive balance of observed text signals, never a factual
+    // probability. With no contrast, a default 50 or a saturated 74/100 would
+    // imply a measurement that was not made. Length and publisher names cannot
+    // supply that missing measurement.
+    const indiceDisponivel = pesoFalso > 0 && pesoConfiavel > 0;
+    const porcentagemLocal = indiceDisponivel
+        ? Math.round(100 * pesoConfiavel / (pesoFalso + pesoConfiavel))
+        : null;
 
     return {
         porcentagemLocal,
         alertasFalso,
         alertasConfiavel,
         pesoFalso,
-        pesoConfiavel
+        pesoConfiavel,
+        indiceDisponivel
     };
 }
 
@@ -174,8 +160,7 @@ function analisarDimensoesNoticia(texto, analiseLocal, dadosAPI = {}) {
     const qualidadeFonte = limitar(
         (temLink ? 40 : 0) +
         (temAtribuicao ? 25 : 0) +
-        (temData ? 20 : 0) +
-        (analiseLocal.alertasConfiavel.some(item => item.label.includes('veículo')) ? 15 : 0)
+        (temData ? 20 : 0)
     );
     const completude = limitar(
         (quantidadePalavras >= 80 ? 35 : quantidadePalavras >= 35 ? 20 : 8) +
@@ -218,54 +203,28 @@ function analisarDimensoesNoticia(texto, analiseLocal, dadosAPI = {}) {
 }
 
 function calcularVeredictoFinal(data, analiseLocal) {
-    const notasAPI = [];
-    if (data?.encontrados && Array.isArray(data.resultados)) {
-        data.resultados.forEach(r => {
-            if (!/^https?:\/\//i.test(r.url_verificacao || '')) return;
-            const nota = mapearAvaliacaoAPI(r.avaliacao);
-            if (nota !== null) notasAPI.push(nota);
-        });
-    }
-
-    if (notasAPI.length > 0) {
-        const piorNota  = Math.min(...notasAPI);
-        const mediaNota = notasAPI.reduce((a, b) => a + b, 0) / notasAPI.length;
-        const notaAPIFinal = Math.round(piorNota * 0.7 + mediaNota * 0.3);
-        const porcentagem = Math.round(notaAPIFinal * 0.85 + analiseLocal.porcentagemLocal * 0.15);
-
-        return {
-            porcentagem: Math.max(2, Math.min(98, porcentagem)),
-            fonte: 'api',
-            confianca: notasAPI.length > 1 ? 'alta' : 'média',
-            explicacao: notasAPI.length > 1
-                ? `${notasAPI.length} verificações de fato encontradas para este conteúdo. O veredito prioriza a avaliação mais crítica entre elas.`
-                : 'Uma verificação de fato profissional foi encontrada para este conteúdo e é o principal critério do veredito.'
-        };
-    }
-
-    const totalSinais = analiseLocal.alertasFalso.length + analiseLocal.alertasConfiavel.length;
+    // The historical export name is kept for callers, but this is only a text index.
+    // Published ratings never enter the score: they belong to the evidence pipeline.
     return {
-        porcentagem: analiseLocal.porcentagemLocal,
+        porcentagem: data?.indiceElegivel === true ? analiseLocal.porcentagemLocal : null,
         fonte: 'local',
-        confianca: totalSinais >= 4 ? 'média' : 'baixa',
-        explicacao: totalSinais === 0
-            ? 'Nenhum fact-check externo foi encontrado e o texto não apresenta padrões claros de risco ou confiabilidade. O resultado é inconclusivo.'
-            : 'Nenhum fact-check externo foi encontrado. O veredito é estimado apenas por padrões de linguagem e estrutura do texto, o que é menos confiável que uma verificação humana.'
+        confianca: null,
+        explicacao: 'Índice descritivo de linguagem, estrutura e referências citadas no texto. Não representa probabilidade de verdade, confiança factual ou autenticação de mídia. A classificação depende exclusivamente das evidências validadas.'
     };
 }
 
 function obterRotuloVeredicto(pct) {
-    if (pct >= 75) return 'Provavelmente Verdadeira';
-    if (pct >= 55) return 'Tende a ser verdadeira';
-    if (pct >= 40) return 'Inconclusivo / Verificar';
-    if (pct >= 20) return 'Tende a ser falsa';
-    return 'Provavelmente Falsa';
+    if (typeof pct !== 'number' || !Number.isFinite(pct)) return 'Indicadores indisponíveis';
+    if (pct >= 75) return 'Mais referências e sinais formais';
+    if (pct >= 55) return 'Alguns sinais formais no texto';
+    if (pct >= 40) return 'Padrões mistos no texto';
+    if (pct >= 20) return 'Padrões que pedem atenção';
+    return 'Mais padrões de alerta';
 }
 
 export {
     SINAIS_FALSO,
     SINAIS_CONFIAVEL,
-    mapearAvaliacaoAPI,
     analisarTextoLocalmente,
     calcularVeredictoFinal,
     extrairInformacoesNoticia,
@@ -273,34 +232,50 @@ export {
     obterRotuloVeredicto
 };
 
-export const AVISO_HEURISTICO = 'Pontuação heurística baseada nos parâmetros originais do texto. Indicadores automáticos, não prova definitiva de verdade ou falsidade.';
+export const AVISO_HEURISTICO = 'Pontuação heurística dos padrões do texto, sem calibração estatística. Não é probabilidade de verdade nem prova definitiva de verdade, falsidade ou adulteração.';
 
-// Only evidence already validated by the factual pipeline may enter the legacy API weighting.
-// Related publications, incomplete searches and conflicts never promote a visual score.
+// Evidence counts are kept separate from the local text index.
 export function criarAnaliseVisual(texto, { afirmacoes = [], classificacao, incompleta = false } = {}) {
     const analiseLocal = analisarTextoLocalmente(texto);
-    const classificacoesConcluidas = new Set(['Verdadeiro', 'Falso', 'Parcialmente verdadeiro', 'Enganoso']);
+    const classificacoesConcluidas = new Set(['Conteúdo verdadeiro', 'Falso', 'Parcialmente verdadeiro', 'Adulterado', 'Distorcido', 'Fora de contexto']);
     const evidencias = new Map();
     if (!incompleta && classificacoesConcluidas.has(classificacao)) {
         for (const afirmacao of afirmacoes) {
             if (afirmacao.tipo !== 'fato' || afirmacao.consultaCompleta !== true || afirmacao.conflito || !classificacoesConcluidas.has(afirmacao.veredito)) continue;
             for (const evidencia of afirmacao.evidencias || []) {
-                if (evidencia.utilizavel !== true || evidencia.correspondencia !== 'exata' || evidencia.fonteReconhecida !== true || !classificacoesConcluidas.has(evidencia.classificacaoPublicada)) continue;
+                if (evidencia.utilizavel !== true || evidencia.correspondencia !== 'exata' || evidencia.fonteReconhecida !== true || evidencia.classificacaoPublicada !== afirmacao.veredito || !classificacoesConcluidas.has(evidencia.classificacaoPublicada)) continue;
                 const chave = evidencia.id || `${evidencia.url_verificacao}|${evidencia.avaliacao}`;
                 evidencias.set(chave, evidencia);
             }
         }
     }
     const resultados = [...evidencias.values()];
-    const dadosAPI = { encontrados: resultados.length > 0, quantidade: resultados.length, resultados };
+    const fatos = afirmacoes.filter(afirmacao => afirmacao.tipo === 'fato');
+    // This gate depends on validated evidence for every factual claim, not on
+    // textual style, provider configuration or mere search-result presence.
+    const indiceElegivel = !incompleta && classificacoesConcluidas.has(classificacao) && fatos.length > 0 && fatos.every(afirmacao =>
+        afirmacao.consultaCompleta === true && !afirmacao.conflito && afirmacao.veredito === classificacao &&
+        (afirmacao.evidencias || []).some(evidencia => evidencias.has(evidencia.id || `${evidencia.url_verificacao}|${evidencia.avaliacao}`))
+    );
+    const dadosAPI = { encontrados: resultados.length > 0, quantidade: resultados.length, resultados, indiceElegivel };
     const calculo = calcularVeredictoFinal(dadosAPI, analiseLocal);
+    const dimensoes = analisarDimensoesNoticia(texto, analiseLocal, dadosAPI);
+    if (!indiceElegivel) {
+        analiseLocal.porcentagemLocal = null;
+        analiseLocal.indiceDisponivel = false;
+        for (const nome of ['fonte', 'estrutura', 'sensacionalismo']) dimensoes[nome].pontuacao = null;
+    }
     return {
+        escopo: 'padroes_textuais',
         porcentagem: calculo.porcentagem,
         veredito: obterRotuloVeredicto(calculo.porcentagem),
         confianca: calculo.confianca,
         fonte: calculo.fonte,
+        indiceElegivel,
+        motivoIndice: !indiceElegivel ? 'Sem verificação factual completa com evidência elegível; os sinais abaixo são apenas descritivos.' :
+            analiseLocal.indiceDisponivel ? 'Verificação factual elegível; o índice descreve somente padrões do texto.' : 'Não há contraste de sinais textuais para calcular um índice.',
         analiseLocal,
-        dimensoes: analisarDimensoesNoticia(texto, analiseLocal, dadosAPI),
+        dimensoes,
         texto,
         explicacao: calculo.explicacao,
         quantidadePalavras: texto.trim().split(/\s+/).filter(Boolean).length,

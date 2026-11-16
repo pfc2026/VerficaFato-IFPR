@@ -1,6 +1,8 @@
 import { readFile, stat } from 'node:fs/promises';
 import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { languageIndicators } from './claims.js';
+import { extractFeatures, FEATURE_NAMES, STYLE_NAMES, styleFeatures, sentencesFor } from './padroes-features.js';
 let runtimePromise;
 const semanticModels = new WeakMap();
 export function loadTensorflow() {
@@ -115,6 +117,33 @@ function semanticSimilarities(tf, runtime, texts) {
     return normalized.matMul(normalized.transpose()).arraySync().map(row => row.map(value => Math.max(-1,Math.min(1,value))));
   });
 }
+// Modelo treinado de padrões de linguagem (scripts/treinar-tf.mjs).
+let patternModelPromise;
+const PATTERN_MODEL_FILE = fileURLToPath(new URL('../data/modelo-padroes.json', import.meta.url));
+async function loadPatternModel(tf, file = PATTERN_MODEL_FILE) {
+  const saved = JSON.parse(await readBounded(file));
+  const weightData = Buffer.from(saved.weightData, 'base64');
+  const model = await tf.loadLayersModel(tf.io.fromMemory({ modelTopology: saved.modelTopology, weightSpecs: saved.weightSpecs,
+    weightData: weightData.buffer.slice(weightData.byteOffset, weightData.byteOffset + weightData.byteLength) }));
+  if (JSON.stringify(saved.atributos) !== JSON.stringify(FEATURE_NAMES)) throw new Error('PATTERN_FEATURES_MISMATCH');
+  return { model, info: { nome: saved.nome, metricas: saved.metricas, dados: saved.dados, treinadoEm: saved.treinadoEm } };
+}
+// Probabilidade (0–100) de o texto seguir o padrão de jornalismo/alegações verdadeiras,
+// e não o padrão das alegações classificadas como falsas pelas agências de checagem.
+// Mede estilo de escrita; não confirma fatos.
+export async function patternScore(text, { loader = loadTensorflow, file } = {}) {
+  const tf = await loader();
+  const runtime = await (file ? loadPatternModel(tf, file) : (patternModelPromise ||= loadPatternModel(tf).catch(error => { patternModelPromise = undefined; throw error; })));
+  const sentences = sentencesFor(text);
+  // Avalia o texto inteiro e cada frase; a nota é a média das duas leituras,
+  // para que um trecho típico de boato ("compartilhe antes que apaguem") pese no resultado.
+  const probs = tf.tidy(() => Array.from(tf.sigmoid(runtime.model.predict(tf.tensor2d([text, ...sentences].map(extractFeatures)))).dataSync()));
+  const whole = probs[0], parts = probs.slice(1);
+  const mean = (whole + parts.reduce((sum, value) => sum + value, 0) / parts.length) / 2;
+  const style = styleFeatures(text);
+  const sinais = STYLE_NAMES.filter((name, i) => style[i] > 0);
+  return { porcentagem: Math.round(mean * 100), frasesAvaliadas: sentences.length, sinais, modelo: runtime.info };
+}
 export async function analyzeLanguage(text, claims, reviews, { loader = loadTensorflow, modelDir = process.env.TFJS_MODEL_DIR } = {}) {
   const indicadores = languageIndicators(text);
   const base = { indicadores, tensorflow:{disponivel:false,metodo:'indisponível',modelo:null,modeloSemantico:modelDir ? 'nao_executado' : 'desativado',comparacoesExecutadas:0,limitacoes:[]}, comparacoes:[] };
@@ -125,8 +154,15 @@ export async function analyzeLanguage(text, claims, reviews, { loader = loadTens
     const documents = [...claims.map(c => c.texto),...reviews.map(r => r.texto_verificado)];
     base.tensorflow = {...base.tensorflow,disponivel:true,metodo:'TF-IDF e cosseno lexical',limitacoes:[
       'Similaridade lexical mede palavras em comum; não comprova equivalência de sentido nem veracidade.',
-      'Sensacionalismo é identificado por regras transparentes, sem um classificador treinado.'
+      'O modelo de padrões mede o estilo de escrita comparado a exemplos rotulados; não confirma fatos.'
     ]};
+    try {
+      base.tensorflow.padroes = await patternScore(text, { loader });
+      base.tensorflow.metodo = 'modelo treinado de padrões de linguagem, TF-IDF e cosseno lexical';
+    } catch {
+      base.tensorflow.padroes = null;
+      base.tensorflow.limitacoes.push('O modelo treinado de padrões de linguagem não pôde ser carregado.');
+    }
     if (!claims.length || !reviews.length) {
       base.tensorflow.limitacoes.push('Não há pares de afirmações e checagens para comparar. Nenhuma similaridade foi calculada.');
       if (!modelDir) base.tensorflow.limitacoes.push('Modelo semântico treinado e avaliado para português não fornecido. Não foi executada inferência semântica.');

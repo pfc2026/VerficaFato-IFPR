@@ -49,7 +49,12 @@ export async function collectSource({ sourceConfig, settings = new ScraperSettin
       const [valid] = await validateNewsItem(item, { allowDomains: source.allowDomains, validate: httpCollector.validate });
       if (!valid) { metrics.itemsRejected++; continue; }
       if (deduplicator.isDuplicate(item.url, item.content_hash)) { metrics.duplicatesIgnored++; continue; }
-      deduplicator.mark(item.url, item.content_hash); items.push(item); metrics.itemsValid++;
+      deduplicator.mark(item.url, item.content_hash);
+      items.push(NewsItem.build({...item.toDict(),
+        proveniencia:{tipo:'artigo',metodo:'extracao_artigo',urlOrigem:item.url,content_hash:item.content_hash},
+        revisao:{estado:'pendente',motivo:'A extração identifica um corpo de artigo; a revisão de proveniência ainda é necessária antes de oferecê-lo como contexto.'}
+      }));
+      metrics.itemsValid++;
     } catch { metrics.errorsCount++; logger.warn(`Falha isolada em um artigo da fonte ${source.name}; coleta prossegue.`); }
   }
   return items;
