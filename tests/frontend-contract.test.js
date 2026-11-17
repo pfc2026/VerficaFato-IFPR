@@ -52,7 +52,8 @@ async function exercise(fault) {
     assert.equal(shows,1);assert.equal(button.disabled,false);assert.equal(form.getAttribute('aria-busy'),'false');
     assert.match(document.querySelector('.factual-summary').textContent,/Sem evidências suficientes/);
     assert.equal(document.querySelector('.credibility-meter'),null);
-    assert.equal(document.querySelector('.analysis-card strong'),null);
+    assert.equal(document.querySelectorAll('.analysis-card strong').length,3);
+    assert.deepEqual([...document.querySelectorAll('.analysis-score')].map(node=>node.textContent),['—/100','—/100','—/100']);
     assert.equal(document.querySelector('.service-availability'),null);
     assert.match(document.querySelector('.linguistic-comparisons').textContent,/runtime disponível; nenhuma comparação executada; nenhum modelo treinado utilizado/);
   } finally {

@@ -29,7 +29,9 @@ for(const percentage of [8,61,94])test('estimativa '+percentage+'% é o resultad
   assert.equal(data.veredito,'Sem evidências suficientes');assert.equal(data.porcentagem,null);
   assert.equal(resultLabel({resultado:data}),estimateClassification(percentage));
   assert.equal(resultBadge({resultado:data}).textContent,estimateClassification(percentage));
-  for(const selector of ['.service-availability','.learning-recommendations','.user-guidance','.credibility-meter','.result-metrics','.analysis-overview','.news-information','.text-characteristics'])assert.equal(root.querySelector(selector),null,selector);
+  for(const selector of ['.service-availability','.learning-recommendations','.user-guidance','.credibility-meter','.result-metrics','.news-information','.text-characteristics'])assert.equal(root.querySelector(selector),null,selector);
+  assert.ok(root.querySelector('.analysis-overview'));
+  assert.equal(root.querySelectorAll('.analysis-card strong').length,3);
   assert.ok(details.querySelector('.claim-results'));assert.ok(details.querySelector('.linguistic-comparisons'));
 });
 

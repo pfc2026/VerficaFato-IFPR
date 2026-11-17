@@ -100,6 +100,6 @@ test('HTTP route → real TensorFlow → single mocked Gemini → shared DOM ren
   const data=await response.json();assert.equal(response.status,200);assert.equal(data.sucesso,true);assert.equal(p.observed().calls,1);
   assert.equal(data.dados.schemaVersion,2);assert.equal(data.dados.porcentagem,null);assert.equal(data.dados.confianca,null);assert.equal(data.dados.analiseVisual.porcentagem,null);assert.ok(data.dados.analiseVisual);
   const dom=new JSDOM('<div id="result"></div>'),previous=globalThis.document;globalThis.document=dom.window.document;
-  try {const root=document.getElementById('result');renderAnalysis(root,data.dados);assert.ok(root.querySelector('.legal-context'));assert.equal(root.querySelector('.gemini-feedback-text').textContent,data.dados.feedbackGemini.texto);assert.equal(root.querySelectorAll('.analysis-card').length,0);assert.equal(root.querySelector('.result-details').open,false);}
+  try {const root=document.getElementById('result');renderAnalysis(root,data.dados);assert.ok(root.querySelector('.legal-context'));assert.equal(root.querySelector('.gemini-feedback-text').textContent,data.dados.feedbackGemini.texto);assert.equal(root.querySelectorAll('.analysis-card').length,3);assert.equal(root.querySelector('.result-details').open,false);}
   finally {globalThis.document=previous;dom.window.close();}
 });

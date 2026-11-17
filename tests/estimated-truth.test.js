@@ -62,7 +62,8 @@ test('HTTP e interface distinguem índice textual da conclusão factual sem chec
     (record.resultado ? renderHistoryAnalysis : renderAnalysis)(root, record);
     assert.equal(root.querySelector('.meter-percentage'), null);
     assert.equal(root.querySelector('.credibility-meter'), null);
-    assert.equal(root.querySelector('.analysis-card strong'), null);
+    assert.equal(root.querySelectorAll('.analysis-card strong').length, 3);
+    assert.deepEqual([...root.querySelectorAll('.analysis-score')].map(node=>node.textContent), ['—/100','—/100','—/100']);
     assert.equal(root.querySelector('.text-patterns-status'),null);
     assert.match(root.querySelector('.ai-estimate-summary').textContent,/Estimativa indisponível/);
     assert.equal(root.querySelector('.factual-summary h3').textContent, 'Sem evidências suficientes');

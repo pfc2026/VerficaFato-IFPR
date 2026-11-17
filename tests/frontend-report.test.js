@@ -114,7 +114,7 @@ test('publicação enviada é distinta das referências no corpo e IA desativada
     feedbackGemini: { status: 'local', texto: 'O Gemini não pôde gerar um comentário nesta tentativa.', referencias: [] }
   }));
   assert.match(root.querySelector('.article-source').textContent, /Endereço da publicação enviada/);
-  assert.equal(root.querySelector('.analysis-overview'),null);
+  assert.ok(root.querySelector('.analysis-overview'));
   assert.ok(root.querySelector('.article-source').closest('.result-details'));
   assert.doesNotMatch(root.textContent, /Não há link de fonte no conteúdo enviado/);
   assert.match(root.querySelector('.gemini-feedback').textContent, /está desativada/);

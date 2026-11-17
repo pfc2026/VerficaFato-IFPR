@@ -5,6 +5,7 @@ import { renderAnalysis, renderHistoryAnalysis } from '../public/js/result-rende
 import { analyzeLanguage } from '../services/tensorflow.js';
 import { analisarConteudo } from '../services/analysis.js';
 import { generateExplanation } from '../services/explanation.js';
+import { criarAnaliseVisual } from '../services/verification-indicators.js';
 import { analysisFixture } from './helpers/analysis-fixture.js';
 
 function render(t, data, historical = false) {
@@ -17,6 +18,53 @@ function render(t, data, historical = false) {
   else renderAnalysis(root,analysisFixture(data));
   return root;
 }
+
+test('leitura e informações da notícia reaproveitam os dados sem alterar a verificação',t=>{
+  const visual=criarAnaliseVisual('Segundo a Polícia Federal, a operação em Brasília envolveu 150 pessoas em 13/11/2025.');
+  const data=analysisFixture({tipoEntrada:'url',analiseVisual:visual});
+  const before=structuredClone(data),root=render(t,data);
+  assert.equal(root.querySelectorAll('.analysis-card').length,3);
+  assert.deepEqual([...root.querySelectorAll('.analysis-score')].map(node=>node.textContent),['—/100','—/100','—/100']);
+  assert.equal(root.querySelector('.analysis-overview .progress-bar'),null);
+  assert.match(root.querySelector('.analysis-overview').textContent,/Indicadores automáticos, não prova definitiva/);
+  const info=root.querySelector('.news-information');
+  assert.equal(info.querySelector('.news-claim p').textContent,visual.dimensoes.informacoes.alegacaoPrincipal);
+  const groups=[...info.querySelectorAll('.news-info-group')];
+  for(const [index,key] of ['palavrasImportantes','entidades','numeros','datas'].entries()){
+    assert.deepEqual([...groups[index].querySelectorAll('.news-info-values span')].map(node=>node.textContent),visual.dimensoes.informacoes[key]);
+  }
+  assert.deepEqual(data,before);
+  const scores=structuredClone(data);
+  for(const [key,value] of [['sensacionalismo',0],['fonte',45],['estrutura',80]])scores.analiseVisual.dimensoes[key].pontuacao=value;
+  const scoresBefore=structuredClone(scores);
+  renderAnalysis(root,scores);
+  assert.deepEqual([...root.querySelectorAll('.analysis-score')].map(node=>node.textContent),['0/100','45/100','80/100']);
+  assert.deepEqual([...root.querySelectorAll('.analysis-progress')].map(node=>node.getAttribute('aria-valuenow')),['0','45','80']);
+  assert.deepEqual(scores,scoresBefore);
+  renderHistoryAnalysis(root,{resultado:scores});
+  assert.ok(root.querySelector('.news-information'));
+  assert.deepEqual([...root.querySelectorAll('.analysis-score')].map(node=>node.textContent),['0/100','45/100','80/100']);
+});
+
+test('informações extraídas só aparecem para entrada por link, inclusive no histórico',t=>{
+  const visual=criarAnaliseVisual('Uma mensagem com referência https://example.com/noticia e data 13/11/2025.');
+  const data=analysisFixture({tipoEntrada:'texto',analiseVisual:visual,noticia:{url:'https://example.com/noticia'}});
+  const root=render(t,data);
+  assert.ok(root.querySelector('.analysis-overview'));
+  assert.equal(root.querySelector('.news-information'),null);
+  renderHistoryAnalysis(root,{resultado:data});
+  assert.equal(root.querySelector('.news-information'),null);
+  renderHistoryAnalysis(root,{...data,tipoEntrada:undefined});
+  assert.equal(root.querySelector('.news-information'),null);
+  const attack='<img src=x onerror="alert(1)">',linked=structuredClone(data);
+  linked.tipoEntrada='url';
+  Object.assign(linked.analiseVisual.dimensoes.informacoes,{
+    alegacaoPrincipal:attack,palavrasImportantes:[attack],entidades:[attack],numeros:[attack],datas:[attack],links:['javascript:alert(1)']
+  });
+  renderAnalysis(root,linked);
+  assert.ok(root.querySelector('.news-information').textContent.includes(attack));
+  assert.equal(root.querySelector('.news-information img, .news-information script, .news-information [onerror], .news-information a'),null);
+});
 
 test('resultado real do TensorFlow associa comparação ao trecho e à fonte sem afirmar verdade',async t=>{
   const texto='A prefeitura anunciou obras na escola municipal.';

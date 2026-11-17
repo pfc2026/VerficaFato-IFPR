@@ -30,7 +30,7 @@ test('URLs ativas, credenciais e caracteres de controle são rejeitados', () => 
   for (const url of ['javascript:alert(1)','data:text/html,x','ftp://example.com','https://user:pass@example.com','java\nscript:alert(1)','https://example.com\nx']) assert.equal(safeWebUrl(url),null,url);
   assert.equal(safeWebUrl('https://example.com/check?q=a&b=c'),'https://example.com/check?q=a&b=c');
 });
-test('resultado compacto preserva parecer em detalhes sem contadores ou cartões de linguagem', () => {
+test('resultado compacto preserva parecer em detalhes e restaura cartões descritivos de linguagem', () => {
   const {dom,root}=browser();
   const input='flavio bolsonaro teve um romance com o lula?';
   const visual=criarAnaliseVisual(input);
@@ -42,7 +42,8 @@ test('resultado compacto preserva parecer em detalhes sem contadores ou cartões
   assert.equal(root.querySelector('.metric-value'),null);
   assert.equal(root.querySelector('.credibility-meter'),null);
   assert.match(root.querySelector('.ai-estimate-summary').textContent,/Estimativa indisponível/);
-  assert.equal(root.querySelectorAll('.analysis-card strong').length,0);
+  assert.equal(root.querySelectorAll('.analysis-card strong').length,3);
+  assert.deepEqual([...root.querySelectorAll('.analysis-score')].map(node=>node.textContent),['—/100','—/100','—/100']);
   assert.equal(root.querySelector('.news-information'),null);
   assert.equal(root.querySelector('.text-characteristics'),null);
   assert.equal(root.querySelectorAll('.gemini-feedback').length,1);
