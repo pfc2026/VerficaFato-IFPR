@@ -771,16 +771,25 @@ body { background-color: #172d31; }
 .restored-results .classification-guide summary { cursor: pointer; }
 .restored-results .percentage-circle .meter-percentage { font-size: 1.1rem !important; }
 
-/* Reference treatment: olive card, gold details and a compact circular gauge. */
+/* The percentage controls presentation only; unavailable results stay neutral. */
 .compact-results .ai-estimate-summary {
-  --estimate-accent: #f2ae18;
+  --estimate-accent: #aab8af;
+  --estimate-track: rgba(170,184,175,.18);
+  --estimate-inner: #19251f;
   --estimate-angle: 0deg;
-  background: #353b1d !important;
-  border: 1px solid #756126 !important;
+  background: #29312e !important;
+  border: 1px solid #4e5e56 !important;
   border-radius: 14px !important;
   color: #edf0e7;
   padding: 1.2rem !important;
   box-shadow: none;
+}
+.compact-results .ai-estimate-summary[data-estimate-tone] {
+  --estimate-accent: hsl(var(--estimate-hue) 84% 66%);
+  --estimate-track: hsl(var(--estimate-hue) 50% 60% / .18);
+  --estimate-inner: hsl(var(--estimate-hue) 24% 11%);
+  background: hsl(var(--estimate-hue) 26% 17%) !important;
+  border-color: hsl(var(--estimate-hue) 37% 37%) !important;
 }
 .compact-results .estimate-heading { display: flex; align-items: center; justify-content: space-between; gap: 1rem; min-width: 0; }
 .compact-results .estimate-title { flex: 1; min-width: 0; }
@@ -795,18 +804,19 @@ body { background-color: #172d31; }
   padding: 7px;
   box-sizing: border-box;
   border-radius: 50%;
-  background: conic-gradient(var(--estimate-accent) var(--estimate-angle), rgba(216,173,43,.22) 0deg);
+  background: conic-gradient(var(--estimate-accent) var(--estimate-angle), var(--estimate-track) 0deg);
 }
-.compact-results .estimate-gauge-inner { width: 100%; height: 100%; border-radius: 50%; background: #10291f; display: flex; align-items: center; justify-content: center; flex-direction: column; gap: .2rem; }
+.compact-results .estimate-gauge-inner { width: 100%; height: 100%; border-radius: 50%; background: var(--estimate-inner); display: flex; align-items: center; justify-content: center; flex-direction: column; gap: .2rem; }
 .compact-results .estimate-percentage, .compact-results .estimate-empty { color: #edf0e7; font-size: 1.2rem; font-weight: 800; line-height: 1; letter-spacing: -.02em; }
+.compact-results .estimate-percentage { color: var(--estimate-accent); }
 .compact-results .estimate-empty { font-size: 1.4rem; }
 .compact-results .estimate-gauge-label { color: #b9c3b1; font-size: .42rem; font-weight: 600; letter-spacing: .04em; line-height: 1.2; }
-.compact-results .estimate-track { height: .45rem; overflow: hidden; border-radius: 999px; background: rgba(222,226,197,.17); margin: 1rem 0 .3rem; }
+.compact-results .estimate-track { height: .45rem; overflow: hidden; border-radius: 999px; background: var(--estimate-track); margin: 1rem 0 .3rem; }
 .compact-results .estimate-fill { height: 100%; border-radius: inherit; background: var(--estimate-accent); }
 .compact-results .estimate-scale { display: flex; align-items: flex-start; justify-content: space-between; gap: .5rem; color: #c7ccba; font-size: .6rem; line-height: 1.35; margin-bottom: .65rem; }
 .compact-results .estimate-scale > :nth-child(2) { text-align: center; }
 .compact-results .estimate-scale > :last-child { text-align: right; }
-.compact-results .estimate-description { display: flex; align-items: flex-start; gap: .5rem; border-top: 1px solid rgba(213,171,37,.16); padding-top: .6rem; margin: 0; color: #d6dcc9; font-size: .77rem; line-height: 1.55; }
+.compact-results .estimate-description { display: flex; align-items: flex-start; gap: .5rem; border-top: 1px solid var(--estimate-track); padding-top: .6rem; margin: 0; color: #d6dcc9; font-size: .77rem; line-height: 1.55; }
 .compact-results .estimate-description > i { flex: 0 0 auto; color: var(--estimate-accent); font-size: .85rem; margin-top: .2rem; }
 .compact-results .estimate-disclaimer { display: block; color: #c5cbb8; font-size: .75rem; line-height: 1.5; margin-top: .65rem; }
 .compact-results .estimate-status { color: #d6dcc9; font-size: .78rem; line-height: 1.5; margin-top: .4rem; }

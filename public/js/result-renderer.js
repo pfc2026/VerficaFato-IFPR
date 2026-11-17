@@ -108,12 +108,19 @@ function indexDescription(index) {
   if(!fc&&!gm)parts.push('Nenhuma checagem publicada parecida foi encontrada, então o número vem só do estilo do texto.');
   return parts.join(' ');
 }
+function applyEstimateAppearance(section,percentage) {
+  const tone=percentage<40?'low':percentage<=65?'medium':'high';
+  const hue=tone==='low'?4+percentage*6/39:tone==='medium'?42+(percentage-40)*10/25:138+(percentage-66)*16/34;
+  section.dataset.estimateTone=tone;
+  section.style.setProperty('--estimate-hue',hue.toFixed(1));
+}
 function estimateSummary(data) {
   const index=validIndex(data);
   if(index)return indexSummary(data,index);
   const estimate=validEstimate(data),section=panel('ai-estimate-summary');
   const notApplicable=data.estimativaIA?.status==='nao_aplicavel'||(!data.estimativaIA&&data.veredito==='Não verificável');
   const label=estimate?estimate.classificacao:data.legado?'Registro legado':notApplicable?'Opinião ou previsão':'Estimativa indisponível';
+  if(estimate)applyEstimateAppearance(section,estimate.porcentagem);
   const row=element('div','estimate-heading'),title=element('div','estimate-title'),line=element('div','estimate-title-line');
   line.append(icon('fa-circle-question estimate-symbol'),element('h3','',label));
   title.append(line,element('span','estimate-kicker',data.legado?'Histórico':'Estimativa de veracidade · IA'));
@@ -142,6 +149,7 @@ function estimateSummary(data) {
 }
 function indexSummary(data,index) {
   const section=panel('ai-estimate-summary');
+  applyEstimateAppearance(section,index.porcentagem);
   const row=element('div','estimate-heading'),title=element('div','estimate-title'),line=element('div','estimate-title-line');
   line.append(icon('fa-circle-question estimate-symbol'),element('h3','',index.classificacao));
   title.append(line,element('span','estimate-kicker',index.componentes.gemini?'Índice de veracidade · TensorFlow + conhecimento do Gemini':'Índice de veracidade · TensorFlow + Google Fact Check'));
